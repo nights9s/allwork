@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ใบเสนอราคา {{ doc_no }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 15mm; }
+  body { font-family: "Sarabun", sans-serif; font-size: 15px; color: #000; max-width: 800px; margin: 20px auto; }
+  .head { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 10px; }
+  h1 { margin: 0; font-size: 26px; text-align: right; }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  th, td { border: 1px solid #555; padding: 6px 8px; }
+  th { background: #eee; }
+  .r { text-align: right; } .c { text-align: center; }
+  .sum td { border: none; } .sum .total td { font-weight: bold; border-top: 2px solid #000; }
+  .sign { display: flex; justify-content: space-around; margin-top: 60px; text-align: center; }
+  .print { position: fixed; top: 10px; right: 10px; padding: 8px 16px; }
+  @media print { .print { display: none; } body { margin: 0; } }
+</style>
+</head>
+<body>
+<button class="print" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+<div class="head">
+  <div>
+    <img src="/static/logo.png" alt="" style="height:44px; margin-bottom:6px"><br>
+    <b>{{ company.name }}</b><br>{{ company.address }}<br>
+    เลขประจำตัวผู้เสียภาษี {{ company.tax_id }}{% if company.phone %} โทร {{ company.phone }}{% endif %}
+  </div>
+  <div><h1>ใบเสนอราคา</h1>เลขที่ {{ doc_no }}<br>วันที่ {{ today }}</div>
+</div>
+
+<p><b>ลูกค้า:</b> {{ q.customer_name }}<br>{{ q.customer_address }}</p>
+
+<table>
+  <tr><th>#</th><th>รายการ</th><th>จำนวน</th><th>หน่วย</th><th>ราคา/หน่วย</th><th>จำนวนเงิน</th></tr>
+  {% for it in q["items"] %}
+  <tr>
+    <td class="c">{{ loop.index }}</td><td>{{ it.description }}</td>
+    <td class="r">{{ "{:,.0f}".format(it.quantity) if it.quantity == it.quantity|int else it.quantity }}</td>
+    <td class="c">{{ it.unit }}</td>
+    <td class="r">{{ "{:,.2f}".format(it.unit_price) }}</td><td class="r">{{ "{:,.2f}".format(it.amount) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<table class="sum" style="width:45%; margin-left:auto">
+  <tr><td>รวมเป็นเงิน</td><td class="r">{{ "{:,.2f}".format(q.subtotal) }}</td></tr>
+  {% if q.discount %}<tr><td>ส่วนลด</td><td class="r">{{ "{:,.2f}".format(q.discount) }}</td></tr>
+  <tr><td>หลังหักส่วนลด</td><td class="r">{{ "{:,.2f}".format(q.after_discount) }}</td></tr>{% endif %}
+  <tr><td>ภาษีมูลค่าเพิ่ม 7%</td><td class="r">{{ "{:,.2f}".format(q.vat) }}</td></tr>
+  <tr class="total"><td>ยอดรวมทั้งสิ้น</td><td class="r">{{ "{:,.2f}".format(q.total) }}</td></tr>
+</table>
+<p class="r">({{ q.total_text }})</p>
+{% if q.note %}<p><b>หมายเหตุ:</b> {{ q.note }}</p>{% endif %}
+
+<div class="sign">
+  <div>____________________<br>ผู้เสนอราคา</div>
+  <div>____________________<br>ผู้อนุมัติ</div>
+</div>
+</body>
+</html>
