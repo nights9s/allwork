@@ -7,6 +7,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 # ใช้รุ่น instruct (ตอบทันทีไม่ต้องคิดก่อน) — รุ่น qwen3:4b ธรรมดาจะคิดนานเป็นนาทีก่อนตอบ
 MODEL = os.getenv("MODEL", "qwen3:4b-instruct")
+# ให้โมเดลค้างอยู่ในหน่วยความจำนานเท่านี้หลังใช้ล่าสุด (ค่าเริ่มต้นของ Ollama คือ 5 นาที แล้วต้องโหลดใหม่)
+# ค่าติดลบ = ค้างไว้ตลอด เหมาะกับเครื่อง Server ที่ใช้งานอย่างเดียว (ต้องมีหน่วยเวลา เช่น "30m", "2h")
+KEEP_ALIVE = os.getenv("KEEP_ALIVE", "-1h")
+
+# เก็บประวัติแชทไว้กี่วันนับจากใช้ล่าสุด แล้วลบอัตโนมัติ (0 = เก็บตลอด)
+HISTORY_DAYS = int(os.getenv("HISTORY_DAYS", "365"))
 
 VAT_RATE = 0.07
 OUTPUT_DIR = BASE_DIR / "output"

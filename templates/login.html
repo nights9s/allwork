@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เข้าสู่ระบบ · DNA Office AI</title>
+<link rel="icon" href="/static/favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand: #ED1B24; --brand-hover: #C8141C; --brand-soft: #FDECEC;
+  --bg: #FFFFFF; --bg-side: #F7F7F8;
+  --text: #1C1C1E; --text-2: #5F6066; --text-3: #8E8F96;
+  --border: #E3E3E6;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand-soft: #3A1517;
+    --bg: #18181A; --bg-side: #111113;
+    --text: #ECECEE; --text-2: #A8A9B0; --text-3: #75767D;
+    --border: #2F2F33;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3);
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { font-family: "Sarabun", "Leelawadee UI", "Thonburi", sans-serif; font-size: 16px; color: var(--text); background: var(--bg-side); display: grid; place-items: center; padding: 16px; }
+.box { width: 100%; max-width: 380px; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 32px 28px 28px; }
+.box img { height: 38px; display: block; margin: 0 auto 6px; }
+.sub { text-align: center; font-size: 13px; color: var(--text-3); letter-spacing: .3px; margin-bottom: 26px; }
+label { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 4px; }
+input { width: 100%; font: inherit; color: var(--text); padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); outline: none; margin-bottom: 14px; transition: border-color .15s, box-shadow .15s; }
+input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+button { width: 100%; font: inherit; font-weight: 600; cursor: pointer; padding: 11px; border: 0; border-radius: 9px; background: var(--brand); color: #fff; margin-top: 4px; transition: background .15s; }
+button:hover { background: var(--brand-hover); }
+button:disabled { opacity: .6; cursor: default; }
+.err { color: var(--brand); background: var(--brand-soft); border-radius: 9px; padding: 9px 12px; font-size: 14px; margin-bottom: 14px; display: none; }
+.foot { text-align: center; font-size: 12.5px; color: var(--text-3); margin-top: 18px; }
+</style>
+</head>
+<body>
+<form class="box" id="form">
+  <img src="/static/logo.png" alt="DNA">
+  <div class="sub">Office AI · เข้าสู่ระบบ</div>
+  <div class="err" id="err"></div>
+  <label for="u">ชื่อผู้ใช้</label>
+  <input id="u" autocomplete="username" autocapitalize="none" required autofocus>
+  <label for="p">รหัสผ่าน</label>
+  <input id="p" type="password" autocomplete="current-password" required>
+  <button id="btn">เข้าสู่ระบบ</button>
+  <div class="foot">ลืมรหัสผ่าน ติดต่อผู้ดูแลระบบ</div>
+</form>
+<script>
+const form = document.getElementById("form"), err = document.getElementById("err"), btn = document.getElementById("btn");
+form.onsubmit = async e => {
+  e.preventDefault();
+  btn.disabled = true; btn.textContent = "กำลังเข้าสู่ระบบ..."; err.style.display = "none";
+  try {
+    const r = await fetch("/api/login", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({username: document.getElementById("u").value, password: document.getElementById("p").value})});
+    if (r.ok) { location.href = "/"; return; }
+    err.textContent = (await r.json()).detail || "เข้าสู่ระบบไม่สำเร็จ";
+  } catch { err.textContent = "เชื่อมต่อ server ไม่ได้"; }
+  err.style.display = "block";
+  btn.disabled = false; btn.textContent = "เข้าสู่ระบบ";
+  document.getElementById("p").select();
+};
+</script>
+</body>
+</html>

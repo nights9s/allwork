@@ -4,7 +4,7 @@ import re
 
 import httpx
 
-from .config import MODEL, OLLAMA_URL
+from .config import KEEP_ALIVE, MODEL, OLLAMA_URL
 
 QUOTATION_SCHEMA = {
     "type": "object",
@@ -71,12 +71,23 @@ CHAT_SYSTEM = """คุณคือผู้ช่วย AI ของบริ�
 ถ้าไม่แน่ใจข้อมูลให้บอกตรงๆ ห้ามแต่งตัวเลขหรือข้อเท็จจริงขึ้นมาเอง"""
 
 
+async def warm_up() -> None:
+    """โหลดโมเดลเข้าหน่วยความจำตั้งแต่เปิด server — ข้อความแรกจะได้ไม่ต้องรอโหลด"""
+    try:
+        async with httpx.AsyncClient(timeout=300) as client:
+            await client.post(f"{OLLAMA_URL}/api/generate", json={"model": MODEL, "keep_alive": KEEP_ALIVE})
+    except httpx.HTTPError:
+        pass  # Ollama ยังไม่เปิด — จะโหลดตอนมีคนใช้ครั้งแรกแทน
+
+
 async def stream_chat(messages: list[dict]):
     """ส่งคำตอบทีละส่วนให้ขึ้นบนหน้าจอแบบพิมพ์ไปเรื่อยๆ"""
     payload = {
         "model": MODEL,
         "messages": [{"role": "system", "content": CHAT_SYSTEM}, *messages],
         "stream": True,
+        "think": False,  # ตอบทันที ไม่ต้องคิดก่อน (แม้จะเปลี่ยนไปใช้รุ่นที่คิดได้)
+        "keep_alive": KEEP_ALIVE,
     }
     async with httpx.AsyncClient(timeout=300) as client:
         async with client.stream("POST", f"{OLLAMA_URL}/api/chat", json=payload) as r:
@@ -102,6 +113,7 @@ async def extract_quotation(text: str) -> dict:
         "format": QUOTATION_SCHEMA,
         "stream": False,
         "think": False,
+        "keep_alive": KEEP_ALIVE,
         "options": {"temperature": 0},
     }
     async with httpx.AsyncClient(timeout=300) as client:
