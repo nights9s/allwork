@@ -9,11 +9,11 @@ from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader
 from pydantic import BaseModel
 
-from . import auth, history
+from . import auth, history, lodging
 from .calc import compute_quotation
 from .config import BASE_DIR, COMPANY, MODEL, OLLAMA_URL, OUTPUT_DIR
-from .db import get_document, list_documents, month_stats, save_document, update_document
-from .llm import extract_quotation, stream_chat, verify, warm_up
+from .db import get_document, list_documents, month_stats, report, save_document, update_document
+from .llm import extract_lodging, extract_quotation, stream_chat, verify, warm_up
 from .tasks import detect_task, public_tasks
 
 app = FastAPI(title="DNA Office AI")
@@ -97,17 +97,18 @@ def my_conversations(request: Request):
 
 @app.get("/api/conversations/{conv_id}")
 def conversation(conv_id: int, request: Request):
-    """เจ้าของแชทดูได้ · admin ดูได้ทุกแชท"""
+    """เปิดได้เฉพาะเจ้าของแชท (admin ก็ดูแชทของคนอื่นไม่ได้)"""
     owner = history.owner(conv_id)
-    if not owner or (owner != request.state.user and not auth.is_admin(request.state.user)):
+    if owner != request.state.user:
         raise HTTPException(404, "ไม่พบบทสนทนา")
     return {"id": conv_id, "username": owner, "messages": history.messages(conv_id)}
 
 
-@app.get("/api/admin/conversations")
-def all_conversations(request: Request, user: str = "", q: str = ""):
+@app.get("/api/admin/report")
+def document_report(request: Request, user: str = "", month: str = ""):
+    """ใครออกเอกสารอะไรไปบ้าง — month เช่น 2026-10 (ว่าง = ทั้งหมด)"""
     require_admin(request)
-    return history.list_conversations(username=user or None, q=q.strip(), limit=300)
+    return report(month=month, created_by=user)
 
 
 @app.get("/api/admin/users")
@@ -167,6 +168,33 @@ def document(doc_no: str):
     return doc
 
 
+@app.get("/api/lodging/config")
+def lodging_config():
+    return {"google_key": lodging.google_key()}
+
+
+@app.get("/api/lodging/nearby")
+async def lodging_nearby(place: str = "", area: str = "", lat: float | None = None, lon: float | None = None):
+    """ที่พักรอบที่ทำงาน (ข้อมูล OpenStreetMap) — ส่ง lat/lon มาเมื่อผู้ใช้ปักหมุดเองบนแผนที่"""
+    if not (place.strip() or area.strip() or lat is not None):
+        raise HTTPException(422, "ใส่ที่ทำงานหรือจังหวัดก่อน")
+    try:
+        return await lodging.nearby(place.strip(), area.strip(), lat, lon)
+    except httpx.HTTPError:
+        raise HTTPException(502, "บริการแผนที่ OpenStreetMap ไม่ตอบ ลองใหม่อีกครั้งในอีกสักครู่")
+
+
+@app.get("/api/lodging/resolve")
+async def lodging_resolve(link: str):
+    """พิกัดที่ทำงานจากลิงก์ Google Maps (รวมลิงก์แชร์แบบสั้น) หรือพิกัดที่พิมพ์มา"""
+    try:
+        return await lodging.resolve_link(link)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    except httpx.HTTPError:
+        raise HTTPException(502, "เปิดลิงก์ไม่ได้ ลองใหม่อีกครั้ง หรือวางพิกัดแทน")
+
+
 @app.get("/api/stats")
 def stats():
     return month_stats()
@@ -212,6 +240,9 @@ async def chat(req: ChatRequest, request: Request):
         async for ev in respond():
             if ev["type"] == "token":
                 reply.append(ev["text"])
+            elif ev["type"] == "form" and ev["task"] == "lodging":
+                d = ev["data"]
+                reply.append(f"\n\n[เปิดหน้าหาที่พัก: {' '.join(filter(None, [d['place'], d['area']])) or 'ยังไม่มีสถานที่'}]")
             elif ev["type"] == "form":
                 d = ev["data"]
                 reply.append(f"\n\n[เปิดฟอร์มใบเสนอราคา: {d.get('customer_name') or 'ยังไม่มีชื่อลูกค้า'} · {len(d.get('items', []))} รายการ]")
@@ -225,7 +256,21 @@ async def chat(req: ChatRequest, request: Request):
     async def respond():
         try:
             if task and not task["ready"]:
-                yield dict(type="token", text=f"งาน**{task['name']}**กำลังพัฒนาอยู่ครับ ตอนนี้ระบบออก**ใบเสนอราคา**ได้แล้ว ลองพิมพ์ เช่น \"ออกใบเสนอราคาให้บริษัท ... สินค้า ... จำนวน ... ราคา ...\"")
+                yield dict(type="token", text=f"งาน**{task['name']}**กำลังพัฒนาอยู่ครับ ตอนนี้ระบบออก**ใบเสนอราคา**และ**หาที่พัก**ได้แล้ว ลองพิมพ์ เช่น \"ออกใบเสนอราคาให้บริษัท ... สินค้า ... จำนวน ... ราคา ...\"")
+            elif task and task["id"] == "lodging":
+                yield dict(type="task", id="lodging")
+                yield dict(type="status", text="กำลังอ่านสถานที่และวันที่...")
+                data = await extract_lodging(text)
+                if not data["place"]:
+                    intro = "ระบุสถานที่ทำงานหรือพื้นที่ที่จะไปพักก่อนครับ แล้วกดลิงก์เพื่อค้นหาในแต่ละเว็บได้เลย"
+                elif not data["area"]:
+                    intro = "ใส่จังหวัดหรืออำเภอด้วยครับ เว็บจองที่พักจะค้นหาได้ตรงขึ้น"
+                elif not data["checkin"]:
+                    intro = "เลือกวันเข้าพัก แล้วกดปุ่มด้านล่างเพื่อดูห้องว่างและราคาในแต่ละเว็บได้เลยครับ"
+                else:
+                    intro = "ตรวจสถานที่และวันที่ แล้วกดปุ่มด้านล่างเพื่อดูห้องว่างและราคาในแต่ละเว็บได้เลยครับ"
+                yield dict(type="token", text=intro)
+                yield dict(type="form", task="lodging", data=data, request=text)
             elif task and task["id"] == "quotation":
                 yield dict(type="task", id="quotation")  # บอกหน้าเว็บให้เปิดหน้าแก้เอกสาร แทนหน้าแชท
                 yield dict(type="status", text="กำลังอ่านรายละเอียดใบเสนอราคา...")
@@ -278,7 +323,7 @@ def create_quotation(req: QuotationRequest, request: Request):
         raise HTTPException(422, "ข้อมูลยังไม่ครบ")
     data = compute_quotation(req.data)
     if req.doc_no:
-        if not update_document(req.doc_no, data):
+        if not update_document(req.doc_no, data, request.state.user):
             raise HTTPException(404, f"ไม่พบเอกสาร {req.doc_no}")
         doc_no = req.doc_no
     else:

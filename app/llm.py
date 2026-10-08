@@ -1,6 +1,7 @@
 """ส่วนเดียวที่ใช้ AI: แปลงคำสั่งภาษาคนเป็นข้อมูลโครงสร้าง (ไม่คำนวณเงิน)"""
 import json
 import re
+from datetime import date, timedelta
 
 import httpx
 
@@ -67,6 +68,7 @@ def verify(text: str, data: dict) -> list[str]:
 CHAT_SYSTEM = """คุณคือผู้ช่วย AI ของบริษัท ดีเอ็นเอ โรโบติกส์แอนด์ออโตเมชั่น ซิสเทมส์ จำกัด
 ตอบเป็นภาษาไทย สุภาพ กระชับ ตรงประเด็น
 ระบบนี้ออกใบเสนอราคาได้ โดยให้ผู้ใช้พิมพ์คำสั่งที่มีคำว่า "ใบเสนอราคา"
+และช่วยหาที่พักสำหรับไปทำงานได้ โดยให้พิมพ์คำว่า "หาที่พัก" ตามด้วยสถานที่และวันที่
 งานใบแจ้งหนี้ ใบกำกับภาษี และเงินเดือน กำลังพัฒนา
 ถ้าไม่แน่ใจข้อมูลให้บอกตรงๆ ห้ามแต่งตัวเลขหรือข้อเท็จจริงขึ้นมาเอง"""
 
@@ -128,6 +130,77 @@ async def extract_quotation(text: str) -> dict:
     # โมเดลเล็กชอบติดคำสั่งมากับชื่อลูกค้า เช่น "ใบเสนอราคา บริษัท ..." → "บริษัท ..."
     data["customer_name"] = CUSTOMER_PREFIX.sub("", data.get("customer_name", "")).strip()
     return data
+
+
+LODGING_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "place": {"type": "string"},
+        "area": {"type": "string"},
+        "checkin": {"type": "string"},
+        "checkout": {"type": "string"},
+        "nights": {"type": "number"},
+        "guests": {"type": "number"},
+        "rooms": {"type": "number"},
+    },
+    "required": ["place", "area", "checkin", "checkout", "nights", "guests", "rooms"],
+}
+
+LODGING_PROMPT = """คุณคือผู้ช่วยอ่านคำขอหาที่พักสำหรับพนักงานที่ต้องไปทำงานต่างพื้นที่
+วันนี้คือ {today} (ปี ค.ศ.) ตอบเป็น JSON ตาม schema เท่านั้น
+- place: ชื่อสถานที่ทำงาน บริษัท โรงงาน หรือจุดที่ต้องการพักใกล้ๆ คัดลอกตามที่ผู้ใช้พิมพ์ ไม่ต้องใส่คำว่า "ใกล้" หรือ "ที่พัก" และไม่ต้องรวมชื่อจังหวัด
+- area: จังหวัด อำเภอ หรือเขต เฉพาะที่ผู้ใช้พิมพ์มา เช่น "ระยอง" "บางนา" ถ้าผู้ใช้ไม่ได้พิมพ์ให้เป็นสตริงว่าง ห้ามเดา
+- checkin / checkout: รูปแบบ YYYY-MM-DD ปี ค.ศ. ถ้าผู้ใช้ไม่บอกวันที่ให้เป็นสตริงว่าง ห้ามเดา
+- nights: จำนวนคืน ถ้าไม่บอกให้เป็น 0
+- guests: จำนวนคน ถ้าไม่บอกให้เป็น 1
+- rooms: จำนวนห้อง ถ้าไม่บอกให้เป็น 1"""
+
+
+def _parse_date(s: str) -> date | None:
+    try:
+        d = date.fromisoformat(s.strip())
+    except ValueError:
+        return None
+    return d.replace(year=d.year - 543) if d.year > 2400 else d  # ผู้ใช้ไทยอาจได้ปี พ.ศ. มา
+
+
+async def extract_lodging(text: str) -> dict:
+    """อ่านคำขอหาที่พัก — AI แค่ดึงข้อมูล ส่วนลิงก์ค้นหาสร้างที่หน้าเว็บ (ไม่แต่งชื่อโรงแรมขึ้นมาเอง)"""
+    text = re.sub(r"https?://\S+", " ", text)  # ลิงก์แผนที่ หน้าเว็บจัดการเอง ไม่ต้องให้ AI อ่าน
+    payload = {
+        "model": MODEL,
+        "messages": [
+            {"role": "system", "content": LODGING_PROMPT.format(today=date.today().isoformat())},
+            {"role": "user", "content": text},
+        ],
+        "format": LODGING_SCHEMA,
+        "stream": False,
+        "think": False,
+        "keep_alive": KEEP_ALIVE,
+        "options": {"temperature": 0},
+    }
+    async with httpx.AsyncClient(timeout=300) as client:
+        r = await client.post(f"{OLLAMA_URL}/api/chat", json=payload)
+        r.raise_for_status()
+    raw = json.loads(r.json()["message"]["content"])
+    checkin, checkout = _parse_date(raw.get("checkin", "")), _parse_date(raw.get("checkout", ""))
+    nights = int(raw.get("nights") or 0)
+    if checkin and not checkout and nights > 0:
+        checkout = checkin + timedelta(days=nights)
+    if checkin and checkout and checkout <= checkin:
+        checkout = None
+    if checkin and checkin < date.today():
+        checkin = checkout = None  # วันที่ผ่านไปแล้ว = AI อ่านผิด ให้ผู้ใช้เลือกเอง
+    place = re.sub(r"^(?:\s*(?:หา|ที่พัก|โรงแรม|ห้องพัก|ใกล้ๆ|ใกล้|แถว)\s*)+", "", raw.get("place", "")).strip()
+    area = raw.get("area", "").strip()
+    return {
+        "place": place,
+        "area": area if area and area in text else "",  # จังหวัดที่ไม่ได้พิมพ์มา = AI เดา ให้ผู้ใช้ใส่เอง
+        "checkin": checkin.isoformat() if checkin else "",
+        "checkout": checkout.isoformat() if checkout else "",
+        "guests": max(1, int(raw.get("guests") or 1)),
+        "rooms": max(1, int(raw.get("rooms") or 1)),
+    }
 
 
 CUSTOMER_PREFIX = re.compile(r"^(?:\s*(?:ช่วย|ออก|ทำ|สร้าง|ใบเสนอราคา|เสนอราคา|quotation|ให้กับ|ให้|แก่|ถึง|ลูกค้า|ชื่อ|:)\s*)+", re.I)

@@ -1,5 +1,4 @@
-"""ประวัติการคุยกับ AI: เก็บทุกข้อความของทุกคน
-ผู้ใช้ทั่วไปเห็นเฉพาะของตัวเอง ผู้ดูแลระบบ (admin) ดูของทุกคนได้"""
+"""ประวัติการคุยกับ AI: แต่ละคนเห็นและเปิดได้เฉพาะแชทของตัวเอง"""
 import sqlite3
 import time
 
@@ -50,22 +49,14 @@ def add(conv_id: int, role: str, content: str) -> None:
         c.execute("UPDATE conversations SET updated=? WHERE id=?", (now, conv_id))
 
 
-def list_conversations(username: str | None = None, q: str = "", limit: int = 100) -> list[dict]:
-    """username=None คือของทุกคน (สำหรับ admin) · q ค้นจากข้อความในบทสนทนา"""
-    sql = """SELECT c.id, c.username, c.title, c.created, c.updated,
-                    (SELECT COUNT(*) FROM messages m WHERE m.conversation_id=c.id AND m.role='user')
-             FROM conversations c WHERE 1=1"""
-    args: list = []
-    if username:
-        sql += " AND c.username=?"
-        args.append(username)
-    if q:
-        sql += " AND EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id=c.id AND m.content LIKE ?)"
-        args.append(f"%{q}%")
-    sql += " ORDER BY c.updated DESC LIMIT ?"
-    args.append(limit)
+def list_conversations(username: str, limit: int = 100) -> list[dict]:
     with _conn() as c:
-        rows = c.execute(sql, args).fetchall()
+        rows = c.execute(
+            """SELECT c.id, c.username, c.title, c.created, c.updated,
+                      (SELECT COUNT(*) FROM messages m WHERE m.conversation_id=c.id AND m.role='user')
+               FROM conversations c WHERE c.username=? ORDER BY c.updated DESC LIMIT ?""",
+            (username, limit),
+        ).fetchall()
     return [
         {"id": i, "username": u, "title": t, "created": cr, "updated": up, "questions": n}
         for i, u, t, cr, up, n in rows

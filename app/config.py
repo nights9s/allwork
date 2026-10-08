@@ -14,6 +14,10 @@ KEEP_ALIVE = os.getenv("KEEP_ALIVE", "-1h")
 # เก็บประวัติแชทไว้กี่วันนับจากใช้ล่าสุด แล้วลบอัตโนมัติ (0 = เก็บตลอด)
 HISTORY_DAYS = int(os.getenv("HISTORY_DAYS", "365"))
 
+# key ของ Google Maps Embed API (ไม่บังคับ) — มีแล้วแผนที่หาที่พักจะใช้ Google แทน OpenStreetMap
+# ใส่ได้ทั้ง env หรือไฟล์ google_maps_key.txt ที่โฟลเดอร์หลัก (ไฟล์นี้ไม่ขึ้น git)
+GOOGLE_MAPS_KEY = os.getenv("GOOGLE_MAPS_KEY", "")
+
 VAT_RATE = 0.07
 OUTPUT_DIR = BASE_DIR / "output"
 DB_PATH = BASE_DIR / "data" / "documents.db"

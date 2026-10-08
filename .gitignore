@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 data/*.db
 output/
+google_maps_key.txt

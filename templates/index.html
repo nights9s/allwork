@@ -5,320 +5,403 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DNA Office AI</title>
 <link rel="icon" href="/static/favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --brand: #ED1B24; --brand-hover: #C8141C; --brand-soft: #FDECEC;
-  --bg: #FFFFFF; --bg-app: #F5F5F7; --bg-side: #FFFFFF; --bg-soft: #F2F2F3; --bg-hover: #EDEDF0;
-  --text: #1C1C1E; --text-2: #5F6066; --text-3: #8E8F96;
-  --border: #E3E3E6; --ok: #1F9D55; --ok-soft: #E7F6EE; --warn-bg: #FFF7E6; --warn: #A15C00;
-  --desk: #E4E4E8;
-  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.06);
-  --paper-shadow: 0 2px 6px rgba(0,0,0,.08), 0 12px 40px rgba(0,0,0,.12);
+  --brand: #E3161D; --brand-hover: #C21017; --brand-soft: #FCEBEB; --brand-line: #F3C4C6;
+  --app: #F5F5F2; --surface: #FFFFFF; --sunk: #EFEFEB; --hover: #EBEBE6;
+  --text: #18181B; --text-2: #55555C; --text-3: #8A8A91;
+  --line: #E4E3DE; --line-strong: #D3D2CC;
+  --ok: #1E8A4C; --ok-soft: #E6F4EC; --warn: #9A5B00; --warn-soft: #FFF5E1;
+  --desk: #E2E1DC;
+  --paper-shadow: 0 1px 3px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.10);
+  --font: "IBM Plex Sans Thai", "Sarabun", "Leelawadee UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --brand-soft: #3A1517;
-    --bg: #1C1C1F; --bg-app: #131315; --bg-side: #18181A; --bg-soft: #26262A; --bg-hover: #2C2C30;
-    --text: #ECECEE; --text-2: #A8A9B0; --text-3: #75767D;
-    --border: #2F2F33; --ok-soft: #12301F; --warn-bg: #33270F; --warn: #F0B45C;
-    --desk: #0D0D0F;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3);
-    --paper-shadow: 0 2px 6px rgba(0,0,0,.4), 0 12px 40px rgba(0,0,0,.5);
+    --brand-soft: #351416; --brand-line: #5C2124;
+    --app: #111113; --surface: #18181B; --sunk: #1F1F23; --hover: #26262A;
+    --text: #ECECEE; --text-2: #A3A3AA; --text-3: #6F6F77;
+    --line: #29292E; --line-strong: #36363C;
+    --ok: #4CC07F; --ok-soft: #13291D; --warn: #E9B25A; --warn-soft: #2E2410;
+    --desk: #0B0B0D;
+    --paper-shadow: 0 1px 3px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.5);
   }
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { font-family: "Sarabun", "Leelawadee UI", "Thonburi", sans-serif; font-size: 15px; color: var(--text); background: var(--bg-app); display: flex; overflow: hidden; }
+body { font-family: var(--font); font-size: 15px; line-height: 1.55; color: var(--text); background: var(--app); display: flex; overflow: hidden; -webkit-font-smoothing: antialiased; }
 button { font: inherit; cursor: pointer; color: inherit; }
-input, textarea { font: inherit; color: var(--text); }
+input, textarea, select { font: inherit; color: var(--text); }
 [hidden] { display: none !important; }
+.mono { font-family: var(--mono); font-size: .92em; letter-spacing: -.01em; }
+.tnum { font-variant-numeric: tabular-nums; }
 
 /* ---------- Sidebar ---------- */
-.side { width: 240px; flex-shrink: 0; background: var(--bg-side); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: transform .2s; }
-.side-top { padding: 20px 18px 8px; }
-.side-top img { height: 32px; display: block; }
-.side-top .sub { font-size: 12px; color: var(--text-3); letter-spacing: .4px; margin-top: 2px; }
-.side-scroll { flex: 1; overflow-y: auto; padding: 8px 10px; }
-.side h4 { font-size: 11.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .6px; margin: 20px 10px 6px; }
-.nav { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; background: none; border-radius: 8px; text-align: left; font-size: 14.5px; color: var(--text-2); }
-.nav:hover { background: var(--bg-hover); color: var(--text); }
-.nav.active { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
-.nav svg { flex-shrink: 0; }
-.nav .ic { width: 18px; text-align: center; font-size: 14px; }
+.side { width: 232px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; transition: transform .2s; }
+.brand { padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+.brand img { height: 28px; display: block; }
+.brand .sub { font-size: 11.5px; color: var(--text-3); margin-top: 4px; letter-spacing: .02em; }
+.side-scroll { flex: 1; overflow-y: auto; padding: 10px 10px; }
+.side-label { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: .08em; margin: 16px 10px 4px; }
+.nav { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; background: none; border-radius: 6px; text-align: left; font-size: 14px; color: var(--text-2); }
+.nav:hover { background: var(--hover); color: var(--text); }
+.nav.active { color: var(--text); font-weight: 600; background: var(--sunk); }
+.nav.active::before { content: ""; position: absolute; left: -10px; top: 7px; bottom: 7px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand); }
+.nav svg { flex-shrink: 0; color: var(--text-3); }
+.nav.active svg, .nav:hover svg { color: var(--text); }
 .nav .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nav .soon { white-space: nowrap; flex-shrink: 0; margin-left: auto; font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: var(--bg-soft); color: var(--text-3); border: 1px solid var(--border); font-weight: 500; }
-.side-foot { border-top: 1px solid var(--border); padding: 10px 12px 12px; }
-.health { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); padding: 0 6px 8px; }
+.nav .soon { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.nav.is-soon { color: var(--text-3); }
+.side-foot { border-top: 1px solid var(--line); padding: 12px 14px; }
+.health { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); margin-bottom: 10px; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); flex-shrink: 0; }
 .dot.ok { background: var(--ok); } .dot.bad { background: var(--brand); }
-.me { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 10px; }
-.me .av { width: 30px; height: 30px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; text-transform: uppercase; flex-shrink: 0; }
-.me .name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.me button { border: 0; background: none; color: var(--text-3); padding: 6px; border-radius: 7px; display: grid; place-items: center; }
-.me button:hover { background: var(--bg-hover); color: var(--brand); }
+.me { display: flex; align-items: center; gap: 10px; }
+.av { width: 28px; height: 28px; border-radius: 50%; background: var(--text); color: var(--surface); display: grid; place-items: center; font-weight: 600; font-size: 12.5px; text-transform: uppercase; flex-shrink: 0; }
+.av.sm { width: 22px; height: 22px; font-size: 11px; }
+.me .name { flex: 1; min-width: 0; font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me .role { display: block; font-size: 11.5px; color: var(--text-3); font-weight: 400; }
 
 /* ---------- Layout ---------- */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.mtop { display: none; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--bg-side); }
+.mtop { display: none; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface); }
 .mtop img { height: 22px; }
-.icon-btn { border: 0; background: none; padding: 6px; border-radius: 8px; display: grid; place-items: center; color: var(--text-2); }
-.icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+.icon-btn { border: 0; background: none; padding: 6px; border-radius: 6px; display: grid; place-items: center; color: var(--text-2); }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
 .view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.bar { display: flex; align-items: center; gap: 12px; padding: 0 20px; height: 56px; flex-shrink: 0; border-bottom: 1px solid var(--line); background: var(--surface); }
+.bar h2 { font-size: 16px; font-weight: 600; margin: 0; }
+.bar .sp { flex: 1; }
+.bar .note { font-size: 12.5px; color: var(--text-3); }
 
-.btn { border: 1px solid var(--border); background: var(--bg); border-radius: 9px; padding: 7px 16px; font-weight: 500; text-decoration: none; color: var(--text); display: inline-flex; align-items: center; gap: 6px; font-size: 14.5px; white-space: nowrap; }
-.btn:hover { background: var(--bg-hover); }
+.btn { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 6px; padding: 6px 14px; font-weight: 500; text-decoration: none; color: var(--text); display: inline-flex; align-items: center; gap: 6px; font-size: 14px; white-space: nowrap; }
+.btn:hover { background: var(--hover); }
 .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-.btn.primary:hover { background: var(--brand-hover); }
-.btn:disabled { opacity: .5; cursor: default; }
-.btn.sm { padding: 4px 11px; font-size: 13.5px; border-radius: 7px; }
+.btn.primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.sm { padding: 3px 10px; font-size: 13px; }
+.btn.ghost { border-color: transparent; background: none; color: var(--text-2); }
+.btn.ghost:hover { background: var(--hover); color: var(--text); }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 500; padding: 0 7px; border-radius: 4px; background: var(--sunk); color: var(--text-2); line-height: 20px; }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
 
 /* ---------- Home ---------- */
-.home { max-width: 1080px; margin: 0 auto; padding: 32px 28px 40px; }
-.hello { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-.hello h1 { font-size: 26px; font-weight: 700; margin: 0; }
-.hello .date { color: var(--text-3); font-size: 14px; }
+.page { max-width: 1180px; margin: 0 auto; padding: 36px 32px 48px; }
+.page-head { margin-bottom: 20px; }
+.eyebrow { font-size: 13px; color: var(--text-3); }
+.page-head h1 { font-size: 26px; font-weight: 600; margin: 2px 0 0; letter-spacing: -.01em; }
 
-.cmd { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 6px; transition: border-color .15s, box-shadow .15s; }
-.cmd:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
-.cmd-row { display: flex; align-items: flex-end; gap: 8px; padding: 6px 6px 6px 14px; }
-.cmd-row .spark { color: var(--brand); margin-bottom: 9px; flex-shrink: 0; }
-.cmd textarea { flex: 1; border: 0; outline: none; resize: none; background: none; font-size: 16px; line-height: 1.55; padding: 7px 0; max-height: 160px; }
-.go { height: 40px; padding: 0 16px; border-radius: 11px; border: 0; background: var(--brand); color: #fff; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.cmd { display: flex; align-items: flex-end; gap: 10px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 6px 6px 14px; transition: border-color .15s; }
+.cmd:focus-within { border-color: var(--text-2); }
+.cmd svg.ai { color: var(--brand); margin-bottom: 10px; flex-shrink: 0; }
+.cmd textarea { flex: 1; border: 0; outline: none; resize: none; background: none; font-size: 15.5px; line-height: 1.55; padding: 7px 0; max-height: 160px; }
+.go { height: 38px; padding: 0 16px; border-radius: 6px; border: 0; background: var(--brand); color: #fff; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .go:hover { background: var(--brand-hover); }
-.go:disabled { opacity: .4; cursor: default; }
-.cmd-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 4px 10px 6px; border-top: 1px solid var(--border); }
-.chip { border: 1px solid var(--border); background: var(--bg-soft); border-radius: 99px; padding: 3px 11px; font-size: 13px; color: var(--text-2); }
-.chip:hover { border-color: var(--brand); color: var(--brand); }
-.cmd-status { padding: 8px 14px 6px; font-size: 14px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+.go:disabled { opacity: .35; cursor: default; }
+.cmd-status { padding: 8px 2px 0; font-size: 14px; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
 .cmd-status.err { color: var(--brand); }
+.examples { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 10px 2px 0; font-size: 13px; color: var(--text-3); }
+.examples button { border: 0; background: none; padding: 0; color: var(--text-2); font-size: 13px; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.examples button:hover { color: var(--brand); text-decoration-color: var(--brand); }
 
-.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
-.stat { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
-.stat .k { font-size: 13px; color: var(--text-3); }
-.stat .v { font-size: 26px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
-.stat .v small { font-size: 14px; font-weight: 500; color: var(--text-3); margin-left: 4px; }
+.home-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 40px; margin-top: 36px; align-items: start; }
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--text); }
+.sec-head h2 { font-size: 15px; font-weight: 600; margin: 0; }
+.search { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 10px; width: 230px; outline: none; font-size: 13.5px; }
+.search:focus { border-color: var(--text-2); }
 
-.section-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 26px 0 10px; }
-.section-h h2 { font-size: 16px; font-weight: 700; margin: 0; }
-.tasks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.task { text-align: left; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: border-color .15s, transform .15s, box-shadow .15s; position: relative; }
-.task:hover { border-color: var(--brand); box-shadow: var(--shadow); transform: translateY(-1px); }
-.task .tic { width: 40px; height: 40px; border-radius: 10px; background: var(--brand-soft); display: grid; place-items: center; font-size: 20px; }
-.task b { font-size: 15px; display: block; }
-.task span { font-size: 13px; color: var(--text-3); }
-.task.soon { opacity: .65; }
-.task.soon:hover { border-color: var(--border); transform: none; box-shadow: none; }
-.task .tag { position: absolute; top: 14px; right: 14px; font-size: 11px; padding: 1px 8px; border-radius: 99px; background: var(--bg-soft); color: var(--text-3); border: 1px solid var(--border); }
-.task .tag.ready { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
-
-.table-card { background: var(--bg); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-.search { border: 1px solid var(--border); background: var(--bg); border-radius: 9px; padding: 6px 12px; width: 240px; outline: none; font-size: 14px; }
-.search:focus { border-color: var(--brand); }
 table.docs { width: 100%; border-collapse: collapse; }
-.docs th { text-align: left; font-size: 12.5px; font-weight: 600; color: var(--text-3); padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-soft); white-space: nowrap; }
-.docs td { padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 14.5px; }
-.docs tr:last-child td { border-bottom: 0; }
+.docs th { text-align: left; font-size: 12px; font-weight: 500; color: var(--text-3); padding: 10px 10px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.docs td { padding: 11px 10px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+.docs th:first-child, .docs td:first-child { padding-left: 2px; }
+.docs th:last-child, .docs td:last-child { padding-right: 2px; }
 .docs tbody tr { cursor: pointer; }
-.docs tbody tr:hover td { background: var(--bg-soft); }
-.docs .no { font-weight: 600; white-space: nowrap; }
+.docs tbody tr:hover td { background: var(--surface); }
+.docs .no { white-space: nowrap; font-weight: 500; }
 .docs .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.docs .muted { color: var(--text-2); white-space: nowrap; }
-.docs .act { text-align: right; white-space: nowrap; }
-.pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 6px; background: var(--brand-soft); color: var(--brand); margin-right: 8px; }
-.empty { padding: 36px 16px; text-align: center; color: var(--text-3); }
+.docs .muted { color: var(--text-3); white-space: nowrap; }
+.docs .act { text-align: right; white-space: nowrap; width: 1%; }
+.docs .act a { color: var(--text-3); text-decoration: none; font-size: 13px; padding: 2px 6px; border-radius: 4px; }
+.docs .act a:hover { color: var(--brand); background: var(--brand-soft); }
+.docs .who { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.empty { padding: 32px 4px; color: var(--text-3); font-size: 14px; }
+
+.rail section + section { margin-top: 32px; }
+.rail h3 { font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: .08em; margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.fig { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.fig span { font-size: 13.5px; color: var(--text-2); }
+.fig b { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fig b small { font-size: 12px; font-weight: 400; color: var(--text-3); margin-left: 4px; }
+.fig.big b { font-size: 24px; letter-spacing: -.01em; }
+.action { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; background: none; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+.action:hover { background: var(--surface); }
+.action:hover .go-ic { color: var(--brand); transform: translateX(2px); }
+.action .ic { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; color: var(--text-2); flex-shrink: 0; }
+.action .tx { flex: 1; min-width: 0; }
+.action b { display: block; font-size: 14px; font-weight: 500; }
+.action small { display: block; font-size: 12.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.action .go-ic { color: var(--text-3); transition: transform .15s, color .15s; flex-shrink: 0; }
+.action.is-soon { cursor: default; }
+.action.is-soon b, .action.is-soon .ic { color: var(--text-3); }
+.action.is-soon:hover { background: none; }
 
 /* ---------- Editor ---------- */
-.ed-top { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--border); background: var(--bg); flex-wrap: wrap; }
-.ed-top .title { font-weight: 700; font-size: 16px; }
-.ed-top .docno { font-size: 13px; padding: 2px 10px; border-radius: 99px; background: var(--bg-soft); color: var(--text-2); border: 1px solid var(--border); }
-.ed-top .docno.saved { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
-.ed-top .sp { flex: 1; }
-.ed-top .saved-note { font-size: 13px; color: var(--text-3); }
-.ed { flex: 1; min-height: 0; display: flex; }
-.ed-form { width: 460px; flex-shrink: 0; overflow-y: auto; background: var(--bg); border-right: 1px solid var(--border); padding: 18px 20px 30px; }
-.ed-preview { flex: 1; min-width: 0; overflow: auto; background: var(--desk); padding: 28px; display: flex; flex-direction: column; align-items: center; }
+.docno { font-size: 13px; padding: 1px 8px; border-radius: 4px; background: var(--sunk); color: var(--text-2); }
+.docno.saved { background: var(--ok-soft); color: var(--ok); }
+.saved-note { font-size: 13px; color: var(--text-3); }
+.split { flex: 1; min-height: 0; display: flex; }
+.pane-form { width: 440px; flex-shrink: 0; overflow-y: auto; background: var(--surface); border-right: 1px solid var(--line); padding: 20px 22px 32px; }
+.pane-view { flex: 1; min-width: 0; overflow: auto; background: var(--desk); padding: 28px; display: flex; flex-direction: column; align-items: center; }
 .paper-wrap { position: relative; flex-shrink: 0; }
-.paper-wrap iframe { position: absolute; top: 0; left: 0; width: 794px; border: 0; background: #fff; transform-origin: 0 0; box-shadow: var(--paper-shadow); border-radius: 2px; }
-.preview-label { font-size: 12px; color: var(--text-3); margin-bottom: 10px; letter-spacing: .3px; }
-.ed-tabs { display: none; }
+.paper-wrap iframe { position: absolute; top: 0; left: 0; width: 794px; border: 0; background: #fff; transform-origin: 0 0; box-shadow: var(--paper-shadow); }
+.preview-label { font-size: 12px; color: var(--text-3); margin-bottom: 10px; }
+.tabs { display: none; }
 
-.ai-note { border: 1px solid var(--border); background: var(--bg-soft); border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; font-size: 14px; }
-.ai-note .q { color: var(--text-2); font-style: italic; margin-bottom: 6px; display: flex; gap: 8px; }
-.ai-note .a { display: flex; gap: 8px; align-items: flex-start; }
-.ai-note .a img { width: 20px; height: 20px; margin-top: 1px; }
-.warnbox { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 14px; font-size: 14px; margin-top: 10px; }
-.warnbox ul { margin: 4px 0 0; padding-left: 20px; }
-.grp { font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .6px; margin: 18px 0 8px; }
+.ai-note { border-left: 3px solid var(--brand); padding: 2px 0 2px 12px; margin-bottom: 20px; font-size: 14px; }
+.ai-note .q { color: var(--text-3); margin-bottom: 4px; }
+.ai-note .a { color: var(--text); }
+.warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 6px; padding: 8px 12px; font-size: 13.5px; margin-top: 8px; }
+.warnbox ul { margin: 2px 0 0; padding-left: 18px; }
+.grp { font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: .08em; margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .grp:first-child { margin-top: 0; }
-.field { margin-bottom: 10px; }
+.field { margin-bottom: 12px; }
 .field label { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 4px; }
 .req { color: var(--brand); }
-.in { width: 100%; min-width: 0; padding: 8px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); outline: none; transition: border-color .15s, box-shadow .15s; }
-.in:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.in { width: 100%; min-width: 0; padding: 7px 10px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); outline: none; transition: border-color .15s, box-shadow .15s; }
+.in:focus { border-color: var(--text-2); box-shadow: 0 0 0 3px var(--sunk); }
 .in.missing { border-color: var(--brand); background: var(--brand-soft); }
-.in.r { text-align: right; }
+.in.r { text-align: right; font-variant-numeric: tabular-nums; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.item { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 8px; position: relative; }
-.item .n { position: absolute; top: -9px; left: 10px; background: var(--bg); padding: 0 6px; font-size: 11.5px; color: var(--text-3); font-weight: 600; }
+.item { padding: 12px 0; border-bottom: 1px dashed var(--line-strong); }
+.item:first-of-type { padding-top: 0; }
+.item .head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
 .item .row3 { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; margin-top: 8px; }
 .item .sm-l { font-size: 11.5px; color: var(--text-3); margin-bottom: 2px; display: block; }
-.item .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 13.5px; color: var(--text-2); }
-.item .foot b { color: var(--text); font-variant-numeric: tabular-nums; }
-.del { border: 0; background: none; color: var(--text-3); padding: 2px 6px; border-radius: 6px; font-size: 13px; }
-.del:hover { color: var(--brand); background: var(--brand-soft); }
-.add { width: 100%; border: 1px dashed var(--border); background: none; border-radius: 10px; padding: 8px; font-size: 14px; color: var(--text-2); }
-.add:hover { border-color: var(--brand); color: var(--brand); }
-.sum { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 10px; font-size: 14.5px; }
+.item .amt { text-align: right; margin-top: 6px; font-size: 13.5px; color: var(--text-2); }
+.item .amt b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+.del { border: 0; background: none; color: var(--text-3); padding: 0 4px; border-radius: 4px; font-size: 12.5px; }
+.del:hover { color: var(--brand); }
+.add { margin-top: 10px; border: 0; background: none; padding: 4px 0; font-size: 14px; color: var(--brand); font-weight: 500; }
+.add:hover { text-decoration: underline; }
+.sum { margin-top: 22px; border-top: 1px solid var(--text); padding-top: 8px; font-size: 14px; }
 .sum div { display: flex; justify-content: space-between; padding: 3px 0; color: var(--text-2); font-variant-numeric: tabular-nums; }
 .sum .total { color: var(--text); font-weight: 700; font-size: 18px; margin-top: 4px; }
 
+/* ---------- Lodging ---------- */
+/* เส้นคั่นช่อง = ช่องว่าง 1px ที่เผยสีพื้นหลัง ใช้ได้ทุกขนาดจอโดยไม่ต้องกำหนดเส้นทีละช่อง */
+.lg-search { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto auto auto auto; gap: 1px; background: var(--line); border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.lg-f { padding: 8px 14px 10px; min-width: 0; position: relative; background: var(--surface); }
+.lg-f label { display: block; font-size: 12px; font-weight: 500; color: var(--text-3); margin-bottom: 2px; white-space: nowrap; }
+.lg-f input[type=text] { width: 100%; border: 0; outline: none; background: none; font-size: 15px; padding: 2px 0; }
+.lg-f:focus-within label { color: var(--brand); }
+.lg-date { position: relative; border: 0; background: none; padding: 2px 0; font-size: 15px; white-space: nowrap; text-align: left; min-width: 118px; }
+.lg-date input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.lg-date .muted { color: var(--text-3); }
+.step { display: flex; align-items: center; gap: 2px; }
+.step button { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--surface); font-size: 15px; line-height: 1; display: grid; place-items: center; color: var(--text-2); }
+.step button:hover:not(:disabled) { border-color: var(--text-2); color: var(--text); }
+.step button:disabled { opacity: .35; cursor: default; }
+.step b { min-width: 26px; text-align: center; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lg-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; color: var(--text-3); }
+.lg-quick button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 2px 12px; font-size: 13px; color: var(--text-2); }
+.lg-quick button:hover { border-color: var(--text-2); color: var(--text); }
+.lg-quick button.on { border-color: var(--text); background: var(--text); color: var(--surface); }
+.lg-link { display: flex; align-items: center; gap: 10px; margin-top: 10px; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 8px; padding: 8px 12px; }
+.lg-link:focus-within { border-style: solid; border-color: var(--text-2); }
+.lg-link.ok { border-style: solid; border-color: var(--ok); }
+.lg-link svg { color: var(--brand); flex-shrink: 0; }
+.lg-link input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font-size: 14px; }
+.lg-link .clear { border: 0; background: none; color: var(--text-3); font-size: 18px; line-height: 1; padding: 0 4px; }
+.lg-link .help { border: 0; background: none; color: var(--text-2); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; padding: 0; }
+.lg-link-status { font-size: 13px; margin-top: 6px; color: var(--text-2); }
+.lg-link-status.ok { color: var(--ok); }
+.lg-link-status.err { color: var(--brand); }
+.lg-help { font-size: 13px; color: var(--text-2); background: var(--surface); border-left: 3px solid var(--line-strong); padding: 8px 12px; margin-top: 8px; line-height: 1.7; }
+.lg-help b { color: var(--text); font-weight: 600; }
+.lg-hint { margin-top: 10px; font-size: 13px; color: var(--warn); }
+.lg-results { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 28px; margin-top: 12px; align-items: start; }
+.lg-summary { font-size: 14px; color: var(--text-2); padding-bottom: 10px; border-bottom: 1px solid var(--text); margin-top: 26px; }
+.lg-summary b { color: var(--text); font-weight: 600; }
+.lg-list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.lg-list-head h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.lg-list-head span { font-size: 12px; color: var(--text-3); }
+.lg-status { font-size: 13.5px; color: var(--text-2); padding: 8px 0; display: flex; gap: 8px; align-items: flex-start; }
+.lg-status.warn { color: var(--warn); }
+.lg-status.err { color: var(--brand); }
+.lg-hotels { max-height: 470px; overflow-y: auto; }
+.hotel { display: flex; gap: 12px; align-items: flex-start; padding: 11px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.hotel:hover, .hotel.on { background: var(--surface); }
+.hotel .n { width: 24px; height: 24px; border-radius: 50%; background: var(--text); color: var(--surface); display: grid; place-items: center; font-size: 12px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+.hotel.on .n { background: var(--brand); color: #fff; }
+.hotel .tx { flex: 1; min-width: 0; }
+.hotel b { display: block; font-weight: 500; font-size: 14.5px; }
+.hotel small { display: block; font-size: 12.5px; color: var(--text-3); }
+.hotel .links { display: flex; gap: 12px; margin-top: 3px; font-size: 12.5px; }
+.hotel .links a { color: var(--text-2); text-decoration: none; }
+.hotel .links a:hover { color: var(--brand); text-decoration: underline; }
+.hotel .km { font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lg-map { position: sticky; top: 0; height: 520px; border-radius: 8px; overflow: hidden; background: var(--sunk); border: 1px solid var(--line); }
+.lg-map iframe, .lg-map #lgLeaflet { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.lg-map .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 14px; text-align: center; padding: 20px; z-index: 500; background: var(--sunk); }
+.lg-map .tip { position: absolute; left: 10px; bottom: 10px; z-index: 600; background: rgba(0,0,0,.72); color: #fff; font-size: 12px; padding: 4px 10px; border-radius: 4px; pointer-events: none; }
+.pin-n { width: 24px; height: 24px; border-radius: 50%; background: #18181B; color: #fff; border: 2px solid #fff; display: grid; place-items: center; font: 600 11px var(--font); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.pin-n.on { background: var(--brand); transform: scale(1.2); }
+.pin-work { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; background: var(--brand); transform: rotate(-45deg); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.45); }
+.leaflet-container { font-family: var(--font); }
+.map-modes { position: absolute; top: 10px; right: 10px; z-index: 700; display: flex; background: #fff; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); overflow: hidden; }
+.map-modes button { border: 0; background: #fff; color: #333; font-size: 12.5px; font-weight: 500; padding: 6px 11px; border-left: 1px solid #e5e5e5; }
+.map-modes button:first-child { border-left: 0; }
+.map-modes button:hover { background: #f2f2f2; }
+.map-modes button.on { background: #18181B; color: #fff; }
+.leaflet-tooltip.lbl-work { background: #E3161D; color: #fff; border: 0; font-weight: 600; font-size: 12.5px; padding: 3px 8px; box-shadow: 0 1px 4px rgba(0,0,0,.35); white-space: nowrap; }
+.leaflet-tooltip.lbl-work::before { border-top-color: #E3161D; }
+.leaflet-tooltip.lbl-hotel { background: rgba(255,255,255,.95); color: #18181B; border: 1px solid #ccc; font-size: 11.5px; font-weight: 500; padding: 1px 6px; box-shadow: none; display: none; }
+.leaflet-tooltip.lbl-hotel::before { display: none; }
+.show-names .leaflet-tooltip.lbl-hotel { display: block; }
+.leaflet-popup-content { margin: 10px 12px; font-size: 13px; line-height: 1.5; }
+.lg-sites-head { margin-top: 36px; }
+.lg-sites { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; }
+.site { display: flex; align-items: center; gap: 14px; padding: 14px 2px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); }
+.site .logo { width: 38px; height: 38px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; }
+.site .tx { flex: 1; min-width: 0; }
+.site .name { font-weight: 600; font-size: 15px; }
+.site small { display: block; font-size: 13px; color: var(--text-3); }
+.site .cta { flex-shrink: 0; border: 1px solid var(--line-strong); border-radius: 6px; padding: 5px 12px; font-size: 13.5px; font-weight: 500; white-space: nowrap; transition: background .15s, border-color .15s, color .15s; }
+.site:hover .cta { background: var(--brand); border-color: var(--brand); color: #fff; }
+.site.off { pointer-events: none; opacity: .4; }
+.lg-fine { font-size: 12.5px; color: var(--text-3); margin-top: 14px; line-height: 1.6; }
+
 /* ---------- Chat ---------- */
-.chat-top { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--bg); }
-.chat-top b { font-size: 16px; }
-.chat-top .sp { flex: 1; }
-.thread { max-width: 760px; margin: 0 auto; padding: 24px 20px 12px; }
-.chat-empty { text-align: center; color: var(--text-3); padding: 12vh 0 0; }
-.chat-empty img { width: 52px; height: 52px; opacity: .9; }
-.chat-empty h3 { color: var(--text); font-size: 20px; margin: 14px 0 4px; }
+.chat-wrap { flex: 1; min-height: 0; display: flex; position: relative; }
+.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat-hist { width: 248px; flex-shrink: 0; border-right: 1px solid var(--line); background: var(--surface); overflow-y: auto; padding: 14px 10px; }
+.chat-hist h5 { font-size: 11px; font-weight: 600; color: var(--text-3); letter-spacing: .08em; margin: 0 8px 8px; }
+.hist-item { display: block; width: 100%; text-align: left; border: 0; background: none; border-radius: 6px; padding: 7px 8px; }
+.hist-item:hover { background: var(--hover); }
+.hist-item.on { background: var(--sunk); }
+.hist-item b { display: block; font-weight: 400; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-item.on b { font-weight: 500; }
+.hist-item span { font-size: 11.5px; color: var(--text-3); }
+.hist-empty { font-size: 13px; color: var(--text-3); padding: 2px 8px; }
+.hist-toggle { display: none !important; }
+.thread { max-width: 740px; margin: 0 auto; padding: 28px 24px 12px; }
+.chat-empty { color: var(--text-3); padding: 12vh 0 0; text-align: center; }
+.chat-empty h3 { color: var(--text); font-size: 19px; font-weight: 600; margin: 0 0 4px; }
 .msg { display: flex; gap: 12px; margin: 0 0 22px; line-height: 1.7; }
 .msg.user { justify-content: flex-end; }
-.msg.user .bubble { background: var(--bg); border: 1px solid var(--border); padding: 9px 15px; border-radius: 16px 16px 4px 16px; max-width: 80%; white-space: pre-wrap; word-wrap: break-word; }
-.avatar { width: 28px; height: 28px; flex-shrink: 0; margin-top: 2px; }
+.msg.user .bubble { background: var(--sunk); padding: 8px 14px; border-radius: 10px; max-width: 80%; white-space: pre-wrap; word-wrap: break-word; }
+.avatar { width: 26px; height: 26px; flex-shrink: 0; margin-top: 2px; }
 .msg.ai .body { flex: 1; min-width: 0; word-wrap: break-word; }
 .body p { margin: 0 0 10px; } .body p:last-child { margin-bottom: 0; }
 .body ul, .body ol { margin: 4px 0 10px; padding-left: 22px; }
-.body code { background: var(--bg-soft); padding: 1px 6px; border-radius: 5px; font-size: 14px; }
+.body code { background: var(--sunk); padding: 1px 6px; border-radius: 4px; font-size: 13.5px; }
 .body h3 { font-size: 16px; margin: 12px 0 6px; }
 .status { color: var(--text-3); font-size: 14px; display: flex; align-items: center; gap: 8px; }
 .typing { display: inline-flex; }
-.typing span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 3px; animation: blink 1.2s infinite; }
+.typing span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin-right: 3px; animation: blink 1.2s infinite; }
 .typing span:nth-child(2) { animation-delay: .2s; } .typing span:nth-child(3) { animation-delay: .4s; }
 @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
 .err { color: var(--brand); }
-.composer-wrap { padding: 8px 20px 16px; }
-.composer { max-width: 760px; margin: 0 auto; border: 1px solid var(--border); border-radius: 16px; background: var(--bg); box-shadow: var(--shadow); display: flex; align-items: flex-end; padding: 7px 7px 7px 16px; }
-.composer:focus-within { border-color: var(--text-3); }
+.composer-wrap { padding: 8px 24px 16px; }
+.composer { max-width: 740px; margin: 0 auto; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); display: flex; align-items: flex-end; padding: 6px 6px 6px 14px; }
+.composer:focus-within { border-color: var(--text-2); }
 .composer textarea { flex: 1; border: 0; outline: none; resize: none; background: none; max-height: 180px; padding: 7px 0; line-height: 1.55; }
-.send { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--brand); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
-.send:disabled { opacity: .35; cursor: default; }
-.hint { max-width: 760px; margin: 6px auto 0; text-align: center; font-size: 12px; color: var(--text-3); }
+.send { width: 36px; height: 36px; border-radius: 6px; border: 0; background: var(--brand); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.send:disabled { opacity: .3; cursor: default; }
+.hint { max-width: 740px; margin: 6px auto 0; font-size: 12px; color: var(--text-3); }
 
-/* ---------- Chat history column ---------- */
-.chat-wrap { flex: 1; min-height: 0; display: flex; position: relative; }
-.chat-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.chat-hist { width: 250px; flex-shrink: 0; border-right: 1px solid var(--border); background: var(--bg); overflow-y: auto; padding: 12px 8px; }
-.chat-hist h5 { font-size: 11.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .6px; margin: 4px 10px 8px; }
-.hist-item { display: block; width: 100%; text-align: left; border: 0; background: none; border-radius: 8px; padding: 8px 10px; }
-.hist-item:hover { background: var(--bg-hover); }
-.hist-item.on { background: var(--brand-soft); }
-.hist-item b { display: block; font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hist-item span { font-size: 12px; color: var(--text-3); }
-.hist-empty { font-size: 13px; color: var(--text-3); padding: 4px 10px; }
-.hist-toggle { display: none !important; }
-.record-note { font-size: 12.5px; color: var(--text-3); margin: 10px 4px 0; display: flex; gap: 6px; align-items: center; }
+/* ---------- Report ---------- */
+.rp-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.rp-filters select { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 6px; padding: 6px 10px; font-size: 14px; outline: none; }
+.rp-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 40px; align-items: start; }
+.person { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: none; padding: 10px 6px; border-bottom: 1px solid var(--line); border-radius: 0; }
+.person:hover { background: var(--surface); }
+.person.on { background: var(--surface); box-shadow: inset 3px 0 0 var(--brand); }
+.person .tx { flex: 1; min-width: 0; }
+.person b { display: block; font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person small { font-size: 12.5px; color: var(--text-3); }
+.person .amt { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 14px; white-space: nowrap; }
+.edited { font-size: 12.5px; color: var(--text-3); white-space: nowrap; }
 
-/* ---------- Admin: ประวัติการใช้งาน ---------- */
-.adm { flex: 1; min-height: 0; display: flex; }
-.adm-list { width: 420px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--bg); }
-.adm-filters { display: flex; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
-.adm-filters select, .adm-filters input { border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; outline: none; }
-.adm-filters select:focus, .adm-filters input:focus { border-color: var(--brand); }
-.adm-filters input { flex: 1; min-width: 0; }
-.adm-count { font-size: 12.5px; color: var(--text-3); padding: 10px 18px 4px; }
-.adm-rows { flex: 1; overflow-y: auto; padding: 2px 8px 12px; }
-.adm-row { display: block; width: 100%; text-align: left; border: 0; background: none; border-radius: 10px; padding: 10px 12px; }
-.adm-row:hover { background: var(--bg-hover); }
-.adm-row.on { background: var(--brand-soft); }
-.adm-row .top { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); }
-.adm-row .who { font-weight: 600; color: var(--text); font-size: 13.5px; }
-.adm-row .top .n { margin-left: auto; white-space: nowrap; }
-.adm-row .t { font-size: 14.5px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
-.mini-av { width: 22px; height: 22px; border-radius: 50%; background: var(--brand); color: #fff; display: inline-grid; place-items: center; font-weight: 700; font-size: 11px; text-transform: uppercase; flex-shrink: 0; }
-.adm-view { flex: 1; min-width: 0; overflow-y: auto; }
-.adm-head { position: sticky; top: 0; z-index: 1; background: var(--bg); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 10px; }
-.adm-head .meta { font-size: 13px; color: var(--text-3); }
-.adm-head .adm-back { display: none; }
-.adm-empty { padding: 18vh 20px; text-align: center; color: var(--text-3); }
-.ts { font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
-.msg.user .ts { text-align: right; }
-.view-note { font-size: 12.5px; color: var(--text-3); }
-
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 10px; font-size: 14.5px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; box-shadow: var(--shadow); }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--text); color: var(--surface); padding: 9px 16px; border-radius: 6px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; }
 .toast.show { opacity: 1; transform: translateX(-50%); }
 
 .scrim { display: none; }
 @media (max-width: 1100px) {
-  .tasks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ed-form { width: 400px; }
+  .home-grid, .rp-grid, .lg-results { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .lg-search { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lg-f:nth-child(-n+2) { grid-column: span 2; }
+  .lg-map { position: relative; height: 380px; order: -1; }
+  .lg-hotels { max-height: none; }
+  .lg-sites { grid-template-columns: 1fr; }
+  .rail { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .rail section + section { margin-top: 0; }
+  .pane-form { width: 380px; }
 }
 @media (max-width: 820px) {
   .side { position: fixed; inset: 0 auto 0 0; z-index: 20; transform: translateX(-100%); }
   .side.open { transform: none; }
   .scrim.open { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 10; }
   .mtop { display: flex; }
-  .home { padding: 20px 16px 32px; }
-  .hello h1 { font-size: 22px; }
-  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cmd-row .go span { display: none; }
+  .page { padding: 22px 16px 32px; }
+  .page-head h1 { font-size: 22px; }
+  .go span { display: none; }
   .go { padding: 0 12px; }
-  .stat:first-child { grid-column: 1 / -1; }
-  .stat .v { font-size: 22px; }
+  .home-grid { margin-top: 28px; }
+  .rail { grid-template-columns: 1fr; order: -1; }
   .search { width: 100%; }
-  .section-h { flex-wrap: wrap; }
+  .sec-head { flex-wrap: wrap; }
   .docs .hide-m { display: none; }
-  .docs td, .docs th { padding-left: 12px; padding-right: 12px; }
-  .ed-top { padding: 8px 12px; }
-  .ed-tabs { display: flex; gap: 4px; padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--border); }
-  .ed-tabs button { flex: 1; border: 0; background: none; padding: 7px; border-radius: 8px; color: var(--text-2); font-weight: 500; }
-  .ed-tabs button.on { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
-  .ed-form { width: 100%; border-right: 0; padding: 16px 14px 28px; }
-  .ed-preview { padding: 16px 12px; }
-  .ed[data-tab="form"] .ed-preview, .ed[data-tab="preview"] .ed-form { display: none; }
-  .thread { padding: 18px 14px 8px; }
+  .bar { padding: 0 12px; height: 52px; }
+  .bar .note { display: none; }
+  .tabs { display: flex; gap: 4px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .tabs button { flex: 1; border: 0; background: none; padding: 6px; border-radius: 6px; color: var(--text-2); font-weight: 500; }
+  .tabs button.on { background: var(--sunk); color: var(--text); font-weight: 600; }
+  .split { flex-direction: column; }
+  .pane-form { width: 100%; border-right: 0; padding: 16px 16px 28px; flex: 1; }
+  .pane-view { flex: 1; }
+  .pane-view { padding: 16px 12px; }
+  .split[data-tab="form"] .pane-view, .split[data-tab="view"] .pane-form { display: none; }
+  .lg-search { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lg-f:nth-child(-n+3) { grid-column: 1 / -1; }
+  .lg-f:last-child { grid-column: 1 / -1; }
+  .site .cta { padding: 5px 10px; }
+  .thread { padding: 18px 16px 8px; }
   .composer-wrap { padding: 6px 12px 12px; }
   .hist-toggle { display: grid !important; }
-  .chat-hist { display: none; position: absolute; inset: 0 auto 0 0; z-index: 5; width: 280px; box-shadow: var(--shadow); }
+  .chat-hist { display: none; position: absolute; inset: 0 auto 0 0; z-index: 5; width: 280px; box-shadow: 0 8px 30px rgba(0,0,0,.2); }
   .chat-hist.open { display: block; }
-  .adm-list { width: 100%; border-right: 0; }
-  .adm-view { display: none; }
-  .adm.open .adm-list { display: none; }
-  .adm.open .adm-view { display: block; }
-  .adm-head .adm-back { display: grid; }
 }
 </style>
 </head>
 <body>
 
 <aside class="side" id="side">
-  <div class="side-top">
+  <div class="brand">
     <img src="/static/logo.png" alt="DNA">
     <div class="sub">Office AI · ระบบงานเอกสาร</div>
   </div>
   <div class="side-scroll">
-    <button class="nav" data-go="home">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
-      หน้าแรก
-    </button>
-    <button class="nav" data-go="chat">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
-      ผู้ช่วย AI
-    </button>
-    <button class="nav" data-go="admin" id="navAdmin" hidden>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>
-      ประวัติการใช้งาน
-    </button>
-    <h4>สร้างเอกสาร</h4>
+    <button class="nav" data-go="home"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="label">หน้าแรก</span></button>
+    <button class="nav" data-go="chat"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg><span class="label">ผู้ช่วย AI</span></button>
+    <button class="nav" data-go="lodging"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20V7M3 14h18v6M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="1.6"/></svg><span class="label">หาที่พัก</span></button>
+    <button class="nav" data-go="admin" id="navAdmin" hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg><span class="label">รายงานเอกสาร</span></button>
+    <div class="side-label">เอกสาร</div>
     <div id="sideTasks"></div>
   </div>
   <div class="side-foot">
     <div class="health"><span class="dot" id="dot"></span><span id="statusText">กำลังเชื่อมต่อ...</span></div>
     <div class="me">
       <div class="av" id="userAv"></div>
-      <div class="name" id="userName"></div>
-      <button id="logoutBtn" title="ออกจากระบบ" aria-label="ออกจากระบบ">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+      <div class="name"><span id="userName"></span><span class="role" id="userRole"></span></div>
+      <button class="icon-btn" id="logoutBtn" title="ออกจากระบบ" aria-label="ออกจากระบบ">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
       </button>
     </div>
   </div>
@@ -327,77 +410,121 @@ table.docs { width: 100%; border-collapse: collapse; }
 
 <main class="main">
   <div class="mtop">
-    <button class="icon-btn" id="menuBtn" aria-label="เมนู">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
+    <button class="icon-btn" id="menuBtn" aria-label="เมนู"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <img src="/static/logo.png" alt="DNA">
   </div>
 
   <!-- ===== หน้าแรก ===== -->
   <section class="view" id="viewHome">
-    <div class="scroll"><div class="home">
-      <div class="hello"><h1 id="hello">สวัสดีครับ</h1><span class="date" id="today"></span></div>
+    <div class="scroll"><div class="page">
+      <header class="page-head"><div class="eyebrow" id="today"></div><h1 id="hello">สวัสดีครับ</h1></header>
 
       <div class="cmd">
-        <div class="cmd-row">
-          <svg class="spark" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg>
-          <textarea id="cmdInput" rows="1" placeholder="สั่งงานด้วยข้อความ เช่น ออกใบเสนอราคาให้บริษัท เอบีซี จำกัด มอเตอร์ 3 ตัว ตัวละ 8,500 บาท"></textarea>
-          <button class="go" id="cmdGo" disabled aria-label="สั่งงาน"><span>สั่งงาน</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </button>
+        <svg class="ai" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9zM19 14l.9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/></svg>
+        <textarea id="cmdInput" rows="1" placeholder="พิมพ์สั่งงานหรือถามคำถาม..."></textarea>
+        <button class="go" id="cmdGo" disabled aria-label="สั่งงาน"><span>สั่งงาน</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </div>
+      <div class="cmd-status" id="cmdStatus" hidden></div>
+      <div class="examples" id="chips"></div>
+
+      <div class="home-grid">
+        <div>
+          <div class="sec-head"><h2>เอกสารล่าสุด</h2><input class="search" id="search" placeholder="ค้นหาเลขที่ หรือชื่อลูกค้า"></div>
+          <table class="docs">
+            <thead><tr><th>เลขที่</th><th>ลูกค้า</th><th class="hide-m">วันที่</th><th class="hide-m">ผู้ออก</th><th class="num">ยอดรวม (บาท)</th><th class="hide-m"></th></tr></thead>
+            <tbody id="docRows"></tbody>
+          </table>
+          <div class="empty" id="docEmpty" hidden></div>
         </div>
-        <div class="cmd-status" id="cmdStatus" hidden></div>
-        <div class="cmd-foot" id="chips"></div>
-      </div>
-      <div class="record-note">🔒 คำสั่งและข้อความที่พิมพ์จะถูกบันทึกในระบบ ผู้ดูแลระบบสามารถดูได้</div>
-
-      <div class="stats">
-        <div class="stat"><div class="k">มูลค่าเอกสารเดือนนี้</div><div class="v" id="stTotal">–<small>บาท</small></div></div>
-        <div class="stat"><div class="k">เอกสารเดือนนี้</div><div class="v" id="stMonth">–<small>ฉบับ</small></div></div>
-        <div class="stat"><div class="k">ออกวันนี้</div><div class="v" id="stToday">–<small>ฉบับ</small></div></div>
-      </div>
-
-      <div class="section-h"><h2>สร้างเอกสาร</h2></div>
-      <div class="tasks" id="taskCards"></div>
-
-      <div class="section-h">
-        <h2>เอกสารล่าสุด</h2>
-        <input class="search" id="search" placeholder="ค้นหาเลขที่ หรือชื่อลูกค้า">
-      </div>
-      <div class="table-card">
-        <table class="docs">
-          <thead><tr><th>เลขที่</th><th>ลูกค้า</th><th class="hide-m">วันที่</th><th class="hide-m">ผู้ออก</th><th class="num">ยอดรวม (บาท)</th><th class="hide-m"></th></tr></thead>
-          <tbody id="docRows"></tbody>
-        </table>
-        <div class="empty" id="docEmpty" hidden>ยังไม่มีเอกสาร — ลองสั่งงานในช่องด้านบน</div>
+        <aside class="rail">
+          <section>
+            <h3>ภาพรวมเดือนนี้</h3>
+            <div class="fig big"><span>มูลค่าเอกสาร</span><b id="stTotal">–</b></div>
+            <div class="fig"><span>จำนวนเอกสาร</span><b id="stMonth">–</b></div>
+            <div class="fig"><span>ออกวันนี้</span><b id="stToday">–</b></div>
+          </section>
+          <section>
+            <h3>ทางลัด</h3>
+            <div id="taskCards"></div>
+          </section>
+        </aside>
       </div>
     </div></div>
   </section>
 
   <!-- ===== หน้าแก้เอกสาร ===== -->
   <section class="view" id="viewEditor" hidden>
-    <div class="ed-top">
-      <button class="icon-btn" id="edBack" aria-label="กลับหน้าแรก" title="กลับหน้าแรก">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-      </button>
-      <span class="title">ใบเสนอราคา</span>
-      <span class="docno" id="edDocNo">ร่างใหม่</span>
+    <div class="bar">
+      <button class="icon-btn" id="edBack" aria-label="กลับหน้าแรก" title="กลับหน้าแรก"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+      <h2>ใบเสนอราคา</h2>
+      <span class="docno mono" id="edDocNo">ร่างใหม่</span>
       <span class="sp"></span>
       <span class="saved-note" id="edNote"></span>
-      <a class="btn" id="edOpen" target="_blank" hidden>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
-        พิมพ์ / PDF
-      </a>
+      <a class="btn" id="edOpen" target="_blank" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>พิมพ์ / PDF</a>
       <button class="btn primary" id="edSave">สร้างเอกสาร</button>
     </div>
-    <div class="ed-tabs"><button data-tab="form" class="on">กรอกข้อมูล</button><button data-tab="preview">พรีวิวเอกสาร</button></div>
-    <div class="ed" id="ed" data-tab="form">
-      <div class="ed-form" id="edForm"></div>
-      <div class="ed-preview" id="edPreview">
+    <div class="tabs" data-for="ed"><button data-tab="form" class="on">กรอกข้อมูล</button><button data-tab="view">พรีวิวเอกสาร</button></div>
+    <div class="split" id="ed" data-tab="form">
+      <div class="pane-form" id="edForm"></div>
+      <div class="pane-view" id="edPreview">
         <div class="preview-label">พรีวิว · อัปเดตอัตโนมัติขณะกรอก</div>
         <div class="paper-wrap" id="paperWrap"><iframe id="paper" title="พรีวิวเอกสาร"></iframe></div>
       </div>
     </div>
+  </section>
+
+  <!-- ===== หาที่พัก ===== -->
+  <section class="view" id="viewLodging" hidden>
+    <div class="bar"><h2>หาที่พักสำหรับไปทำงาน</h2><span class="sp"></span><span class="note">ระบบไม่ได้จองให้ · ตรวจราคาในเว็บก่อนจองทุกครั้ง</span></div>
+    <div class="scroll"><div class="page">
+      <div id="lgNote"></div>
+      <div class="lg-search">
+        <div class="lg-f"><label for="lgPlace">ไปทำงานที่</label><input type="text" id="lgPlace" placeholder="ชื่อบริษัท โรงงาน หรือนิคม" autocomplete="off"></div>
+        <div class="lg-f"><label for="lgArea">จังหวัด / อำเภอ</label><input type="text" id="lgArea" placeholder="เช่น สมุทรสาคร" autocomplete="off"></div>
+        <div class="lg-f"><label>เข้าพัก</label><button class="lg-date" type="button"><span id="lgDateText"></span><input type="date" id="lgIn" aria-label="วันเข้าพัก"></button></div>
+        <div class="lg-f"><label>จำนวนคืน</label><div class="step" data-k="nights" data-min="1"><button type="button" data-d="-1" aria-label="ลด">−</button><b></b><button type="button" data-d="1" aria-label="เพิ่ม">+</button></div></div>
+        <div class="lg-f"><label>ผู้เข้าพัก</label><div class="step" data-k="guests" data-min="1"><button type="button" data-d="-1" aria-label="ลด">−</button><b></b><button type="button" data-d="1" aria-label="เพิ่ม">+</button></div></div>
+        <div class="lg-f"><label>ห้อง</label><div class="step" data-k="rooms" data-min="1"><button type="button" data-d="-1" aria-label="ลด">−</button><b></b><button type="button" data-d="1" aria-label="เพิ่ม">+</button></div></div>
+      </div>
+      <div class="lg-quick" id="lgQuick">วันเข้าพัก
+        <button type="button" data-q="0">วันนี้</button><button type="button" data-q="1">พรุ่งนี้</button><button type="button" data-q="mon">จันทร์หน้า</button><button type="button" data-q="">ยังไม่ระบุ</button>
+      </div>
+      <div class="lg-link" id="lgLinkBox">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        <input type="text" id="lgLinkIn" placeholder="วางลิงก์ Google Maps ของโรงงาน หรือพิกัด เช่น 13.6125, 100.2650 — แม่นที่สุด" autocomplete="off">
+        <button type="button" class="clear" id="lgLinkClear" title="ล้าง" aria-label="ล้างลิงก์" hidden>×</button>
+        <button type="button" class="help" id="lgLinkHelp">วิธีคัดลอกลิงก์</button>
+      </div>
+      <div class="lg-link-status" id="lgLinkStatus" hidden></div>
+      <div class="lg-help" id="lgHelpBox" hidden>
+        <b>มือถือ:</b> เปิดแอป Google Maps → ค้นหาโรงงาน → กดชื่อสถานที่ → กด <b>แชร์</b> → <b>คัดลอกลิงก์</b> แล้วมาวางที่ช่องนี้<br>
+        <b>คอมพิวเตอร์:</b> เปิด google.com/maps → ค้นหาโรงงาน → กด <b>แชร์</b> → <b>คัดลอกลิงก์</b> หรือคลิกขวาตรงจุดบนแผนที่ แล้วกดตัวเลขพิกัดบรรทัดแรกเพื่อคัดลอก
+      </div>
+      <div class="lg-hint" id="lgHint" hidden></div>
+
+      <div class="lg-summary" id="lgSummary"></div>
+      <div class="lg-results">
+        <div>
+          <div class="lg-list-head"><h3>ที่พักใกล้ที่ทำงาน</h3><span>ข้อมูลจาก OpenStreetMap</span></div>
+          <div class="lg-status" id="lgStatus"></div>
+          <div class="lg-hotels" id="lgHotels"></div>
+        </div>
+        <div class="lg-map">
+          <div class="map-modes" id="lgModes" hidden>
+            <button type="button" data-m="osm" class="on">ที่พัก</button><button type="button" data-m="google">Google Maps</button><button type="button" data-m="sat">ดาวเทียม</button>
+          </div>
+          <div id="lgLeaflet"></div>
+          <iframe id="lgMap" title="แผนที่ที่พักใกล้ที่ทำงาน" loading="lazy" referrerpolicy="no-referrer-when-downgrade" hidden></iframe>
+          <div class="tip" id="lgTip" hidden>ลากหมุดแดง หรือคลิกบนแผนที่ ตรงที่ทำงาน</div>
+          <div class="ph" id="lgMapPh">ใส่ที่ทำงานหรือจังหวัด<br>เพื่อดูที่พักรอบๆ บนแผนที่</div>
+        </div>
+      </div>
+
+      <div class="sec-head lg-sites-head"><h2>เช็คราคาและห้องว่าง</h2></div>
+      <div class="lg-sites" id="lgLinks"></div>
+      <p class="lg-fine">แต่ละปุ่มเปิดหน้าค้นหาของเว็บนั้นในแท็บใหม่ พร้อมพื้นที่ วันที่ และจำนวนคนที่เลือกไว้ ราคาและห้องว่างเป็นของเว็บนั้น ระบบนี้ไม่ได้จองหรือเลือกโรงแรมให้
+        · ข้อมูลที่พักใน OpenStreetMap ยังไม่ครบทุกแห่ง ถ้าไม่เจอที่ต้องการ ดูเพิ่มใน Google Maps หรือ Agoda</p>
+    </div></div>
   </section>
 
   <!-- ===== ผู้ช่วย AI ===== -->
@@ -405,41 +532,40 @@ table.docs { width: 100%; border-collapse: collapse; }
     <div class="chat-wrap">
       <aside class="chat-hist" id="chatHist"></aside>
       <div class="chat-main">
-        <div class="chat-top">
-          <button class="icon-btn hist-toggle" id="histToggle" aria-label="ประวัติแชท" title="ประวัติแชท">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>
-          </button>
-          <b>ผู้ช่วย AI</b><span class="sp"></span>
-          <button class="btn sm" id="newChat">+ แชทใหม่</button>
+        <div class="bar">
+          <button class="icon-btn hist-toggle" id="histToggle" aria-label="ประวัติแชท" title="ประวัติแชท"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></button>
+          <h2>ผู้ช่วย AI</h2><span class="sp"></span>
+          <button class="btn sm" id="newChat">แชทใหม่</button>
         </div>
         <div class="scroll" id="chatScroll"><div class="thread" id="thread"></div></div>
         <div class="composer-wrap">
           <div class="composer">
-            <textarea id="chatInput" rows="1" placeholder="ถามคำถาม ร่างอีเมล สรุปข้อความ หรือสั่งออกเอกสาร..."></textarea>
-            <button class="send" id="chatSend" aria-label="ส่ง" disabled>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-            </button>
+            <textarea id="chatInput" rows="1" placeholder="ถามคำถาม ร่างอีเมล สรุปข้อความ หรือสั่งงาน..."></textarea>
+            <button class="send" id="chatSend" aria-label="ส่ง" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
           </div>
-          <div class="hint">🔒 บทสนทนาถูกบันทึก ผู้ดูแลระบบดูได้ · AI อาจผิดพลาดได้ ตรวจข้อมูลก่อนใช้ทุกครั้ง</div>
+          <div class="hint">Enter ส่ง · Shift+Enter ขึ้นบรรทัดใหม่ · แชทถูกเก็บไว้ในประวัติของคุณ · AI อาจผิดพลาดได้ ตรวจข้อมูลก่อนใช้</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== ประวัติการใช้งาน (เฉพาะ admin) ===== -->
+  <!-- ===== รายงานเอกสาร (เฉพาะ admin) ===== -->
   <section class="view" id="viewAdmin" hidden>
-    <div class="chat-top"><b>ประวัติการใช้งาน</b><span class="sp"></span><span class="view-note">เห็นเฉพาะผู้ดูแลระบบ</span></div>
-    <div class="adm" id="adm">
-      <div class="adm-list">
-        <div class="adm-filters">
-          <select id="admUser"><option value="">ทุกคน</option></select>
-          <input id="admQ" placeholder="ค้นหาข้อความ...">
+    <div class="bar"><h2>รายงานเอกสาร</h2><span class="sp"></span><span class="note">เห็นเฉพาะผู้ดูแลระบบ</span></div>
+    <div class="scroll"><div class="page">
+      <div class="rp-filters"><select id="rpMonth"></select><select id="rpUser"><option value="">ทุกคน</option></select></div>
+      <div class="rp-grid">
+        <div><div class="sec-head"><h2>ผู้ออกเอกสาร</h2></div><div id="rpPeople"></div></div>
+        <div>
+          <div class="sec-head"><h2>เอกสาร</h2></div>
+          <table class="docs">
+            <thead><tr><th>เลขที่</th><th class="hide-m">ลูกค้า</th><th class="num">ยอดรวม (บาท)</th><th>ผู้ออก</th><th class="hide-m">วันที่ออก</th><th class="hide-m">แก้ไขล่าสุด</th></tr></thead>
+            <tbody id="rpRows"></tbody>
+          </table>
+          <div class="empty" id="rpEmpty" hidden>ไม่มีเอกสารในช่วงที่เลือก</div>
         </div>
-        <div class="adm-count" id="admCount"></div>
-        <div class="adm-rows" id="admRows"></div>
       </div>
-      <div class="adm-view" id="admView"><div class="adm-empty">เลือกบทสนทนาทางซ้ายเพื่อดูข้อความทั้งหมด</div></div>
-    </div>
+    </div></div>
   </section>
 </main>
 
@@ -461,7 +587,20 @@ const fmtInt = n => Number(n || 0).toLocaleString("th-TH", {maximumFractionDigit
 const num = v => parseFloat(String(v ?? "").replace(/,/g, "")) || 0;
 const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
 const thDate = iso => iso ? new Date(iso + "T00:00").toLocaleDateString("th-TH", {day: "numeric", month: "short", year: "2-digit"}) : "";
+const when = ts => new Date(ts * 1000).toLocaleString("th-TH", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"});
 const TYPING = `<span class="typing"><span></span><span></span><span></span></span>`;
+const ARROW = `<svg class="go-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+const OUT = `<svg class="go-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>`;
+// ไอคอนเส้นของแต่ละงาน (แทนอีโมจิจาก server)
+const svg = d => `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICONS = {
+  quotation: svg('<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>'),
+  invoice: svg('<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),
+  tax_invoice: svg('<path d="M3 10h18M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18M12 3l9 5H3z"/>'),
+  payroll: svg('<rect x="3" y="6" width="18" height="13" rx="1.5"/><path d="M3 10h18M16 15h2"/>'),
+  lodging: svg('<path d="M3 20V7M3 14h18v6M21 14v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11" r="1.6"/>'),
+};
+const TASK_DESC = {quotation: "พิมพ์สั่งหรือกรอกฟอร์ม พร้อมพรีวิว", lodging: "โรงแรมใกล้ที่ทำงาน พร้อมแผนที่", invoice: "วางบิลจากใบเสนอราคา", tax_invoice: "ออกจากเอกสารที่มีอยู่", payroll: "คำนวณเงินเดือน ประกันสังคม"};
 let tasks = [], docs = [], busy = false;
 
 function toast(text) {
@@ -471,17 +610,26 @@ function toast(text) {
 function autoGrow(el, max) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, max) + "px"; }
 
 // ---------- สลับหน้า ----------
-const views = {home: $("#viewHome"), editor: $("#viewEditor"), chat: $("#viewChat"), admin: $("#viewAdmin")};
+const views = {home: $("#viewHome"), editor: $("#viewEditor"), lodging: $("#viewLodging"), chat: $("#viewChat"), admin: $("#viewAdmin")};
 function show(name) {
   for (const [k, el] of Object.entries(views)) el.hidden = k !== name;
   document.querySelectorAll(".nav[data-go]").forEach(b => b.classList.toggle("active", b.dataset.go === name));
+  document.querySelectorAll(".nav[data-id]").forEach(b => b.classList.toggle("active", name === "editor" && b.dataset.id === "quotation"));
   closeSide();
   if (name === "home") { loadDocs(); loadStats(); $("#cmdInput").focus(); }
   if (name === "chat") { loadMyConvs(); $("#chatInput").focus(); }
-  if (name === "admin") loadAdmin();
+  if (name === "admin") loadReport();
   if (name === "editor") fitPaper();
 }
-document.querySelectorAll(".nav[data-go]").forEach(b => b.onclick = () => show(b.dataset.go));
+document.querySelectorAll(".nav[data-go]").forEach(b => b.onclick = () => b.dataset.go === "lodging" ? openLodging({}) : show(b.dataset.go));
+
+// แท็บ ฟอร์ม / พรีวิว บนมือถือ
+document.querySelectorAll(".tabs").forEach(bar => bar.querySelectorAll("button").forEach(b => b.onclick = () => setTab(bar.dataset.for, b.dataset.tab)));
+function setTab(id, tab) {
+  $("#" + id).dataset.tab = tab;
+  document.querySelectorAll(`.tabs[data-for="${id}"] button`).forEach(x => x.classList.toggle("on", x.dataset.tab === tab));
+  if (id === "ed" && tab === "view") fitPaper();
+}
 
 // ---------- อ่านคำตอบจาก server ทีละบรรทัด (NDJSON) ----------
 async function streamChat(messages, onEvent, conversationId = null) {
@@ -500,6 +648,8 @@ async function streamChat(messages, onEvent, conversationId = null) {
     }
   }
 }
+// ฟอร์มจาก AI → เปิดหน้าที่ตรงกับงาน
+const openForm = (ev, intro) => ev.task === "lodging" ? openLodging({...ev.data, request: ev.request, intro}) : openEditor({...ev, intro});
 
 // ---------- หน้าแรก: ช่องสั่งงาน ----------
 const cmdInput = $("#cmdInput"), cmdGo = $("#cmdGo"), cmdStatus = $("#cmdStatus");
@@ -510,16 +660,16 @@ async function runCommand(text) {
   if (!text || busy) return;
   busy = true; cmdGo.disabled = true;
   setCmdStatus(`${TYPING} กำลังอ่านคำสั่ง...`);
-  let isDoc = false, intro = "", chatBody = null, reply = "", convId = null;
+  let isTask = false, intro = "", chatBody = null, reply = "", convId = null;
   try {
     await streamChat([{role: "user", content: text}], ev => {
       if (ev.type === "conversation") convId = ev.id;
-      else if (ev.type === "task") isDoc = true;
+      else if (ev.type === "task") isTask = true;
       else if (ev.type === "status") setCmdStatus(`${TYPING} ${esc(ev.text)}`);
-      else if (ev.type === "form") { openEditor({...ev, intro}); cmdInput.value = ""; autoGrow(cmdInput, 160); }
-      else if (ev.type === "token" && isDoc) intro += ev.text;
+      else if (ev.type === "form") { openForm(ev, intro); cmdInput.value = ""; autoGrow(cmdInput, 160); }
+      else if (ev.type === "token" && isTask) intro += ev.text;
       else if (ev.type === "token") {
-        // ไม่ใช่งานเอกสาร → ย้ายไปคุยต่อในหน้าผู้ช่วย AI
+        // ไม่ใช่งานที่มีฟอร์ม → ย้ายไปคุยต่อในหน้าผู้ช่วย AI
         if (!chatBody) {
           chatHistory = [{role: "user", content: text}]; currentConv = convId;
           resetThread(); addUser(text); chatBody = addAI(); show("chat");
@@ -542,29 +692,23 @@ cmdInput.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey
 cmdGo.onclick = () => runCommand(cmdInput.value);
 
 function renderChips() {
-  const ex = [
-    ...tasks.filter(t => t.ready).map(t => t.example),
-    "ร่างอีเมลติดตามการชำระเงินแบบสุภาพ",
-    "ระบบนี้ทำอะไรได้บ้าง",
-  ];
-  $("#chips").innerHTML = `<span style="font-size:12.5px;color:var(--text-3);margin-right:2px">ลองพิมพ์:</span>` +
-    ex.map(t => `<button class="chip" data-t="${esc(t)}">${esc(t.length > 42 ? t.slice(0, 40) + "…" : t)}</button>`).join("");
-  $("#chips").querySelectorAll(".chip").forEach(c => c.onclick = () => { cmdInput.value = c.dataset.t; autoGrow(cmdInput, 160); cmdGo.disabled = false; cmdInput.focus(); });
+  const ex = [...tasks.filter(t => t.ready).map(t => t.example), "ร่างอีเมลติดตามการชำระเงินแบบสุภาพ"];
+  $("#chips").innerHTML = `<span>ตัวอย่าง</span>` + ex.map(t => `<button data-t="${esc(t)}">${esc(t.length > 46 ? t.slice(0, 44) + "…" : t)}</button>`).join("");
+  $("#chips").querySelectorAll("button").forEach(c => c.onclick = () => { cmdInput.value = c.dataset.t; autoGrow(cmdInput, 160); cmdGo.disabled = false; cmdInput.focus(); });
 }
 
-// ---------- หน้าแรก: การ์ดงาน + ตารางเอกสาร + สถิติ ----------
-const TASK_DESC = {quotation: "พิมพ์สั่งหรือกรอกฟอร์ม พร้อมพรีวิว", invoice: "วางบิลจากใบเสนอราคา", tax_invoice: "ออกจากเอกสารที่มีอยู่", payroll: "คำนวณเงินเดือน ประกันสังคม"};
+// ---------- หน้าแรก: ทางลัด + ตารางเอกสาร + ตัวเลข ----------
 async function loadTasks() {
   try { tasks = await (await fetch("/api/tasks")).json(); } catch { tasks = []; }
-  $("#taskCards").innerHTML = tasks.map(t => `<button class="task${t.ready ? "" : " soon"}" data-id="${t.id}">
-      <span class="tag${t.ready ? " ready" : ""}">${t.ready ? "พร้อมใช้" : "เร็วๆ นี้"}</span>
-      <div class="tic">${t.icon}</div>
-      <div><b>${esc(t.name)}</b><span>${esc(TASK_DESC[t.id] || "")}</span></div></button>`).join("");
-  $("#sideTasks").innerHTML = tasks.map(t => `<button class="nav" data-id="${t.id}"><span class="ic">${t.icon}</span><span class="label">${esc(t.name)}</span>${t.ready ? "" : '<span class="soon">เร็วๆ นี้</span>'}</button>`).join("");
+  $("#taskCards").innerHTML = tasks.map(t => `<button class="action${t.ready ? "" : " is-soon"}" data-id="${t.id}">
+      <span class="ic">${ICONS[t.id] || ""}</span>
+      <span class="tx"><b>${esc(t.name)}</b><small>${esc(TASK_DESC[t.id] || "")}</small></span>
+      ${t.ready ? ARROW : '<span class="tag">เร็วๆ นี้</span>'}</button>`).join("");
+  $("#sideTasks").innerHTML = tasks.filter(t => t.id !== "lodging").map(t => `<button class="nav${t.ready ? "" : " is-soon"}" data-id="${t.id}">${ICONS[t.id] || ""}<span class="label">${esc(t.name)}</span>${t.ready ? "" : '<span class="soon">เร็วๆ นี้</span>'}</button>`).join("");
   document.querySelectorAll("[data-id]").forEach(b => b.onclick = () => {
     const t = tasks.find(x => x.id === b.dataset.id);
-    if (t.ready) openEditor({data: {}});
-    else toast(`งาน${t.name}กำลังพัฒนา เร็วๆ นี้`);
+    if (!t.ready) return toast(`งาน${t.name}กำลังพัฒนา เร็วๆ นี้`);
+    t.id === "lodging" ? openLodging({}) : openEditor({data: {}});
   });
   renderChips();
 }
@@ -577,14 +721,14 @@ function renderDocs() {
   const q = $("#search").value.trim().toLowerCase();
   const rows = docs.filter(d => !q || d.doc_no.toLowerCase().includes(q) || (d.customer || "").toLowerCase().includes(q));
   $("#docEmpty").hidden = rows.length > 0;
-  $("#docEmpty").textContent = docs.length ? "ไม่พบเอกสารที่ค้นหา" : "ยังไม่มีเอกสาร — ลองสั่งงานในช่องด้านบน";
+  $("#docEmpty").textContent = docs.length ? "ไม่พบเอกสารที่ค้นหา" : "ยังไม่มีเอกสาร ลองพิมพ์สั่งงานในช่องด้านบน";
   $("#docRows").innerHTML = rows.map(d => `<tr data-no="${esc(d.doc_no)}">
-      <td class="no"><span class="pill">QT</span>${esc(d.doc_no)}</td>
+      <td class="no mono">${esc(d.doc_no)}</td>
       <td>${esc(d.customer)}</td>
       <td class="muted hide-m">${thDate(d.created)}</td>
       <td class="muted hide-m">${esc(d.created_by || "–")}</td>
       <td class="num">${fmt(d.total)}</td>
-      <td class="act hide-m"><a class="btn sm" href="/output/${encodeURIComponent(d.doc_no)}.html" target="_blank" data-stop>เปิด</a></td>
+      <td class="act hide-m"><a href="/output/${encodeURIComponent(d.doc_no)}.html" target="_blank" data-stop>เปิด ↗</a></td>
     </tr>`).join("");
   $("#docRows").querySelectorAll("tr").forEach(tr => tr.onclick = e => { if (!e.target.closest("[data-stop]")) openDoc(tr.dataset.no); });
 }
@@ -598,6 +742,252 @@ async function loadStats() {
     $("#stToday").innerHTML = `${s.today_count}<small>ฉบับ</small>`;
   } catch {}
 }
+
+// ---------- หาที่พัก ----------
+// ลิงก์ค้นหาของแต่ละเว็บ สร้างจากข้อมูลในฟอร์ม — ไม่มีการแต่งชื่อโรงแรมขึ้นมาเอง
+// เว็บจองค้นจากชื่อบริษัทไม่เจอ จึงใช้จังหวัด/อำเภอ (ถ้ามี) ส่วนแผนที่ใช้ชื่อที่ทำงานเพื่อหาโรงแรมรอบๆ
+const enc = encodeURIComponent;
+const LODGING_SITES = [
+  {name: "Google Maps", color: "#1A73E8", short: "G", cta: "ดูบนแผนที่", desc: s => `โรงแรมรอบ ${s.near} พร้อมรีวิวและระยะทาง`,
+   url: s => lg.pin ? `https://www.google.com/maps/search/${enc("โรงแรม")}/@${lg.pin.lat},${lg.pin.lon},14z` : `https://www.google.com/maps/search/?api=1&query=${enc("โรงแรม ใกล้ " + s.near)}`},
+  {name: "Agoda", color: "#5A2D82", short: "A", cta: "ดูห้องว่าง", desc: s => `ห้องว่างและราคาใน${s.where}`,
+   url: s => `https://www.agoda.com/th-th/search?textToSearch=${enc(s.where)}&rooms=${s.rooms}&adults=${s.guests}` + (s.checkin ? `&checkIn=${s.checkin}&los=${s.nights}` : "")},
+  {name: "Booking.com", color: "#003B95", short: "B", cta: "ดูห้องว่าง", desc: s => `ห้องว่างและราคาใน${s.where}`,
+   url: s => `https://www.booking.com/searchresults.th.html?ss=${enc(s.where)}&group_adults=${s.guests}&no_rooms=${s.rooms}&group_children=0` + (s.checkin ? `&checkin=${s.checkin}&checkout=${s.checkout}` : "")},
+  {name: "Airbnb", color: "#E0565B", short: "A", cta: "ดูบ้านพัก", desc: s => `บ้านพักรายวันใน${s.where} เหมาะกับไปหลายคน`,
+   url: s => `https://www.airbnb.co.th/s/${enc(s.where)}/homes?adults=${s.guests}` + (s.checkin ? `&checkin=${s.checkin}&checkout=${s.checkout}` : "")},
+];
+const lg = {nights: 1, guests: 1, rooms: 1, pin: null, pinFrom: ""};  // pin = พิกัดที่ทำงานที่ผู้ใช้กำหนดเอง (pinFrom: "map" หรือ "link")
+let lgFetchTimer = null, lgReq = 0, lgMapObj = null, lgLayer = null, lgWork = null, lgMarkers = [], googleKey = "";
+let lgMode = "osm", lgLast = null, lgTiles = {};  // โหมดแผนที่: osm = หมุดที่พัก, sat = ดาวเทียม, google = Google Maps (เห็นชื่อโรงงาน/ร้านค้า)
+fetch("/api/lodging/config").then(r => r.json()).then(c => googleKey = c.google_key || "").catch(() => {});
+const isoDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (iso, n) => { const d = new Date(iso + "T00:00"); d.setDate(d.getDate() + n); return isoDate(d); };
+const thDay = iso => new Date(iso + "T00:00").toLocaleDateString("th-TH", {weekday: "short", day: "numeric", month: "short"});
+
+function openLodging(d) {
+  $("#lgPlace").value = d.place || "";
+  $("#lgArea").value = d.area || "";
+  $("#lgIn").value = d.checkin || "";
+  lg.nights = d.checkin && d.checkout ? Math.max(1, Math.round((new Date(d.checkout) - new Date(d.checkin)) / 86400000)) : 1;
+  lg.guests = d.guests || 1;
+  lg.rooms = d.rooms || 1;
+  lg.pin = null; lg.pinFrom = "";
+  const link = (d.request || "").match(/https?:\/\/\S+/)?.[0] || "";
+  $("#lgLinkIn").value = link; setLinkStatus("");
+  $("#lgNote").innerHTML = (d.request || d.intro) ? `<div class="ai-note">
+      ${d.request ? `<div class="q">“${esc(d.request)}”</div>` : ""}${d.intro ? `<div class="a">${esc(d.intro)}</div>` : ""}</div>` : "";
+  show("lodging"); updateLodging(true);
+  link ? resolveLink() : loadNearby(true);
+  if (!d.place) $("#lgPlace").focus();
+  else if (!d.area) $("#lgArea").focus();
+}
+function lodgingState() {
+  const place = $("#lgPlace").value.trim(), area = $("#lgArea").value.trim();
+  const checkin = $("#lgIn").value;
+  // ไม่ต่อชื่อซ้ำ เช่น ที่ทำงาน "บางนา" + จังหวัด "บางนา"
+  const near = area && !place.includes(area) ? `${place} ${area}`.trim() : (place || area);
+  return {place, area, near, where: area || place, checkin, checkout: checkin ? addDays(checkin, lg.nights) : "",
+          nights: lg.nights, guests: lg.guests, rooms: lg.rooms};
+}
+function updateLodging(now = false) {
+  const s = lodgingState();
+  document.querySelectorAll("#viewLodging .step").forEach(st => {
+    const k = st.dataset.k;
+    st.querySelector("b").textContent = lg[k];
+    st.querySelector('[data-d="-1"]').disabled = lg[k] <= +st.dataset.min;
+  });
+  $("#lgDateText").innerHTML = s.checkin ? esc(thDay(s.checkin)) : `<span class="muted">เลือกวัน</span>`;
+  const q = $("#lgQuick");
+  const today = isoDate(new Date()), tomorrow = addDays(today, 1);
+  q.querySelectorAll("button").forEach(b => b.classList.toggle("on",
+    (b.dataset.q === "" && !s.checkin) || (b.dataset.q === "0" && s.checkin === today) || (b.dataset.q === "1" && s.checkin === tomorrow) || (b.dataset.q === "mon" && s.checkin === nextMonday())));
+
+  const hint = $("#lgHint");
+  hint.hidden = !(s.place && !s.area && lg.pinFrom !== "link");
+  hint.textContent = "แนะนำให้ใส่จังหวัดหรืออำเภอด้วย — Agoda, Booking และ Airbnb ค้นจากชื่อบริษัทไม่เจอ";
+
+  const has = s.place || s.area;
+  $("#lgSummary").innerHTML = has
+    ? `<b>${esc(s.near)}</b> · ${s.checkin ? `${esc(thDay(s.checkin))} – ${esc(thDay(s.checkout))} (${s.nights} คืน)` : "ยังไม่ระบุวัน"} · ${s.guests} คน ${s.rooms} ห้อง`
+    : "ใส่ที่ทำงานหรือจังหวัดด้านบนเพื่อเริ่มค้นหา";
+  $("#lgLinks").innerHTML = LODGING_SITES.map(site => `<a class="site${has ? "" : " off"}" href="${has ? esc(site.url(s)) : "#"}" target="_blank" rel="noopener">
+      <span class="logo" style="background:${site.color}">${site.short}</span>
+      <span class="tx"><span class="name">${site.name}</span><small>${has ? esc(site.desc(s)) : "&nbsp;"}</small></span>
+      <span class="cta">${site.cta} ↗</span></a>`).join("");
+
+}
+
+// ---------- ที่พักรอบที่ทำงาน (OpenStreetMap) + แผนที่ ----------
+function loadNearby(now = false) {
+  clearTimeout(lgFetchTimer);
+  lgFetchTimer = setTimeout(fetchNearby, now ? 0 : 1200);
+}
+async function fetchNearby() {
+  const s = lodgingState(), req = ++lgReq;
+  const has = s.place || s.area || lg.pin;
+  $("#lgMapPh").hidden = !!has;
+  if (!has) { $("#lgHotels").innerHTML = ""; setLgStatus(""); return; }
+  setLgStatus(`${TYPING} กำลังค้นหาที่พักรอบที่ทำงาน... ครั้งแรกอาจใช้เวลา 10–20 วินาที`);
+  const params = new URLSearchParams({place: s.place, area: s.area});
+  if (lg.pin) { params.set("lat", lg.pin.lat); params.set("lon", lg.pin.lon); }
+  let r;
+  try {
+    const res = await fetch(`/api/lodging/nearby?${params}`);
+    r = await res.json();
+    if (!res.ok) throw new Error(r.detail);
+  } catch (e) { if (req === lgReq) setLgStatus(esc(e.message || "ค้นหาไม่สำเร็จ"), "err"); return; }
+  if (req !== lgReq) return;  // ผู้ใช้พิมพ์ต่อแล้ว ผลเก่าไม่ต้องแสดง
+  if (!r.found) {
+    setLgStatus(`หาตำแหน่ง “${esc(s.near)}” บนแผนที่ไม่เจอ ลองใส่ชื่ออำเภอหรือจังหวัด`, "warn");
+    $("#lgHotels").innerHTML = ""; drawMap(null); return;
+  }
+  const msgs = [];
+  if (!r.approx && r.label && !lg.pin) msgs.push(`ปักหมุดที่ทำงานตามแผนที่: ${esc(r.label.split(",").slice(0, 3).join(","))} — ถ้าไม่ตรง ลากหมุดแดงไปตำแหน่งที่ถูก`);
+  if (lg.pinFrom === "map") msgs.push("ใช้ตำแหน่งที่ปักหมุดเองบนแผนที่");
+  if (r.approx && !lg.pin) msgs.push(`ไม่เจอตำแหน่ง “${esc(s.place)}” ในแผนที่ จึงใช้ตำแหน่งกลาง${esc(s.area)} — ลากหมุดแดงหรือคลิกบนแผนที่ตรงที่ทำงาน ระยะทางจะแม่นขึ้น`);
+  msgs.push(r.hotels.length ? `พบ ${r.hotels.length} แห่งในรัศมี ${r.radius_km} กม. เรียงจากใกล้ที่สุด` : `ไม่พบข้อมูลที่พักในรัศมี ${r.radius_km} กม. ลองดูใน Google Maps หรือ Agoda ด้านล่าง`);
+  setLgStatus(msgs.join("<br>"), r.approx ? "warn" : "");  // approx = ใช้กลางจังหวัด ต้องให้ผู้ใช้ปักเอง
+  lgHotels = r.hotels;
+  $("#lgHotels").innerHTML = r.hotels.map((h, i) => `<div class="hotel" data-i="${i}">
+      <span class="n">${i + 1}</span>
+      <span class="tx"><b>${esc(h.name)}</b><small>${esc(h.type)}${h.stars ? ` · ${esc(h.stars)} ดาว` : ""}</small>
+        <span class="links">
+          <a href="https://www.google.com/maps/search/?api=1&query=${enc(h.name + " " + (s.area || ""))}" target="_blank" rel="noopener">Google Maps ↗</a>
+          ${h.phone ? `<a href="tel:${esc(h.phone.replace(/[^+\d]/g, ""))}">โทร ${esc(h.phone)}</a>` : ""}
+          ${h.website ? `<a href="${esc(h.website)}" target="_blank" rel="noopener">เว็บไซต์ ↗</a>` : ""}
+        </span></span>
+      <span class="km">${h.km} กม.</span></div>`).join("");
+  $("#lgHotels").querySelectorAll(".hotel").forEach(el => {
+    el.onclick = e => { if (!e.target.closest("a")) focusHotel(+el.dataset.i, true); };
+  });
+  drawMap(r);
+}
+let lgHotels = [];
+function setLgStatus(html, kind = "") { const el = $("#lgStatus"); el.className = "lg-status" + (kind ? " " + kind : ""); el.innerHTML = html; el.hidden = !html; }
+
+function drawMap(r) {
+  lgLast = r;
+  const s = lodgingState(), google = lgMode === "google";
+  $("#lgModes").hidden = !r;
+  $("#lgModes").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.m === lgMode));
+  $("#lgMap").hidden = !r || !google; $("#lgLeaflet").hidden = google; $("#lgTip").hidden = !r || google;
+  if (!r) return;
+  if (google) {
+    // มี key: แสดงหมุดโรงแรมของ Google รอบที่ทำงาน · ไม่มี key: แผนที่ Google ตรงพิกัดที่ทำงาน (เห็นชื่อโรงงานและร้านรอบๆ)
+    const src = googleKey
+      ? `https://www.google.com/maps/embed/v1/search?key=${enc(googleKey)}&q=${enc("โรงแรม")}&center=${r.lat},${r.lon}&zoom=13&language=th&region=TH`
+      : `https://maps.google.com/maps?q=${r.lat},${r.lon}&z=15&hl=th&output=embed`;
+    if ($("#lgMap").src !== src) $("#lgMap").src = src;
+    return;
+  }
+  if (!window.L) { setLgStatus("โหลดแผนที่ไม่ได้ (ต้องต่ออินเทอร์เน็ต)", "err"); return; }
+  if (!lgMapObj) {
+    lgMapObj = L.map("lgLeaflet", {zoomControl: true});
+    lgTiles.osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19, attribution: "&copy; OpenStreetMap"});
+    lgTiles.sat = L.layerGroup([
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom: 19, attribution: "Imagery &copy; Esri"}),
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {maxZoom: 19}),
+    ]);
+    lgMapObj.on("click", e => setPin(e.latlng));
+    // ชื่อโรงแรมขึ้นเมื่อซูมใกล้พอ ไม่งั้นป้ายชื่อซ้อนกันจนอ่านไม่ออก
+    lgMapObj.on("zoomend", () => $("#lgLeaflet").classList.toggle("show-names", lgMapObj.getZoom() >= 14));
+  }
+  for (const [k, layer] of Object.entries(lgTiles)) k === lgMode ? layer.addTo(lgMapObj) : layer.remove();
+  if (lgLayer) lgLayer.remove();
+  lgLayer = L.layerGroup().addTo(lgMapObj);
+  const workName = s.place || r.label?.split(",")[0] || "ที่ทำงาน";
+  lgWork = L.marker([r.lat, r.lon], {draggable: true, zIndexOffset: 1000,
+    icon: L.divIcon({className: "", html: '<div class="pin-work"></div>', iconSize: [30, 30], iconAnchor: [15, 30]})})
+    .bindTooltip(`📍 ${esc(workName.length > 34 ? workName.slice(0, 33) + "…" : workName)}`, {permanent: true, direction: "top", offset: [0, -30], className: "lbl-work"}).addTo(lgLayer);
+  lgWork.on("dragend", e => setPin(e.target.getLatLng()));
+  lgMarkers = r.hotels.map((h, i) => L.marker([h.lat, h.lon], {icon: L.divIcon({className: "", html: `<div class="pin-n">${i + 1}</div>`, iconSize: [24, 24], iconAnchor: [12, 12]})})
+    .bindTooltip(esc(h.name.length > 24 ? h.name.slice(0, 23) + "…" : h.name), {permanent: true, direction: "right", offset: [12, 0], className: "lbl-hotel"})
+    .bindPopup(`<b>${esc(h.name)}</b><br>${esc(h.type)} · ${h.km} กม. จากที่ทำงาน`).on("click", () => focusHotel(i, false)).addTo(lgLayer));
+  fitLodgingMap();
+}
+// ให้เห็นที่ทำงาน + ที่พัก 5 แห่งที่ใกล้ที่สุดในจอเดียว (รอให้กล่องแผนที่มีขนาดจริงก่อน)
+function fitLodgingMap() {
+  const r = lgLast;
+  if (!r || !lgMapObj || lgMode === "google") return;
+  setTimeout(() => {
+    lgMapObj.invalidateSize();
+    const pts = [[r.lat, r.lon], ...r.hotels.slice(0, 5).map(h => [h.lat, h.lon])];
+    pts.length > 1 ? lgMapObj.fitBounds(pts, {padding: [50, 50], maxZoom: 15}) : lgMapObj.setView([r.lat, r.lon], 14);
+    $("#lgLeaflet").classList.toggle("show-names", lgMapObj.getZoom() >= 14);
+  }, 120);
+}
+$("#lgModes").querySelectorAll("button").forEach(b => b.onclick = () => {
+  const wasGoogle = lgMode === "google";
+  lgMode = b.dataset.m; drawMap(lgLast);
+  if (wasGoogle && lgMode !== "google") fitLodgingMap();
+});
+function setPin(latlng) {
+  lg.pin = {lat: +latlng.lat.toFixed(5), lon: +latlng.lng.toFixed(5)}; lg.pinFrom = "map";
+  updateLodging(); loadNearby(true);  // ลิงก์ Google Maps ใช้หมุดใหม่ด้วย
+}
+function focusHotel(i, fromList) {
+  document.querySelectorAll("#lgHotels .hotel").forEach(el => el.classList.toggle("on", +el.dataset.i === i));
+  document.querySelectorAll(".pin-n").forEach((el, j) => el.classList.toggle("on", j === i));
+  if (fromList && lgMode === "google") { lgMode = "osm"; drawMap(lgLast); }
+  if (fromList && lgMapObj && lgMarkers[i]) { setTimeout(() => { lgMapObj.setView(lgMarkers[i].getLatLng(), Math.max(lgMapObj.getZoom(), 15)); lgMarkers[i].openPopup(); }, lgMapObj.getSize().x ? 0 : 200); }
+  if (!fromList) document.querySelector(`#lgHotels .hotel[data-i="${i}"]`)?.scrollIntoView({block: "nearest", behavior: "smooth"});
+}
+function nextMonday() {
+  const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));
+  return isoDate(d);
+}
+["#lgPlace", "#lgArea"].forEach(id => $(id).addEventListener("input", () => {
+  if (lg.pinFrom === "map") { lg.pin = null; lg.pinFrom = ""; }
+  updateLodging(); loadNearby();
+}));
+
+// ---------- ลิงก์ Google Maps / พิกัด ของที่ทำงาน ----------
+let linkTimer = null, linkReq = 0;
+function setLinkStatus(html, kind = "") {
+  const el = $("#lgLinkStatus"); el.innerHTML = html; el.hidden = !html; el.className = "lg-link-status" + (kind ? " " + kind : "");
+  $("#lgLinkBox").classList.toggle("ok", kind === "ok");
+  $("#lgLinkClear").hidden = !$("#lgLinkIn").value;
+}
+async function resolveLink() {
+  const text = $("#lgLinkIn").value.trim(), req = ++linkReq;
+  if (!text) {
+    setLinkStatus("");
+    if (lg.pinFrom === "link") { lg.pin = null; lg.pinFrom = ""; updateLodging(); loadNearby(true); }
+    return;
+  }
+  setLinkStatus(`${TYPING} กำลังอ่านพิกัดจากลิงก์...`);
+  try {
+    const res = await fetch(`/api/lodging/resolve?link=${enc(text)}`);
+    const r = await res.json();
+    if (!res.ok) throw new Error(r.detail);
+    if (req !== linkReq) return;
+    lg.pin = {lat: r.lat, lon: r.lon}; lg.pinFrom = "link";
+    if (r.name && !$("#lgPlace").value.trim()) $("#lgPlace").value = r.name;
+    setLinkStatus(`✓ ปักหมุดที่ทำงานตามลิงก์${r.name ? ` (${esc(r.name)})` : ""} · ${r.lat.toFixed(5)}, ${r.lon.toFixed(5)}`, "ok");
+    $("#lgHelpBox").hidden = true;
+    updateLodging(); loadNearby(true);
+  } catch (e) {
+    if (req === linkReq) setLinkStatus(esc(e.message || "อ่านลิงก์ไม่ได้"), "err");
+  }
+}
+$("#lgLinkIn").addEventListener("input", () => { clearTimeout(linkTimer); linkTimer = setTimeout(resolveLink, 600); });
+$("#lgLinkIn").addEventListener("paste", () => { clearTimeout(linkTimer); setTimeout(resolveLink, 0); });
+$("#lgLinkClear").onclick = () => { $("#lgLinkIn").value = ""; resolveLink(); $("#lgLinkIn").focus(); };
+$("#lgLinkHelp").onclick = () => { $("#lgHelpBox").hidden = !$("#lgHelpBox").hidden; };
+$("#lgIn").addEventListener("change", () => updateLodging());
+$("#lgIn").min = isoDate(new Date());
+// คลิกตรงไหนของช่องวันที่ก็เปิดปฏิทิน (แสดงวันแบบไทยแทน mm/dd/yyyy ของเบราว์เซอร์)
+$("#lgIn").addEventListener("click", e => { try { e.target.showPicker(); } catch {} });
+document.querySelectorAll("#viewLodging .step button").forEach(b => b.onclick = () => {
+  const k = b.closest(".step").dataset.k;
+  lg[k] = Math.min(30, Math.max(1, lg[k] + +b.dataset.d)); updateLodging();
+});
+$("#lgQuick").querySelectorAll("button").forEach(b => b.onclick = () => {
+  const q = b.dataset.q;
+  $("#lgIn").value = q === "" ? "" : q === "mon" ? nextMonday() : addDays(isoDate(new Date()), +q);
+  updateLodging();
+});
 
 // ---------- หน้าแก้เอกสาร ----------
 let ed = null;          // สถานะเอกสารที่เปิดอยู่
@@ -614,8 +1004,7 @@ function openEditor(ev, docNo = null, url = null) {
       discount: num(d.discount) || "", note: d.note || "",
     },
   };
-  $("#ed").dataset.tab = "form";
-  document.querySelectorAll(".ed-tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === "form"));
+  setTab("ed", "form");
   drawForm(); updateTop(); show("editor"); refreshPreview(true);
 }
 
@@ -631,7 +1020,7 @@ async function openDoc(no) {
 function updateTop() {
   const no = $("#edDocNo");
   no.textContent = ed.docNo || "ร่างใหม่";
-  no.className = "docno" + (ed.docNo ? " saved" : "");
+  no.className = "docno mono" + (ed.docNo ? " saved" : "");
   $("#edOpen").hidden = !ed.docNo;
   if (ed.docNo) $("#edOpen").href = ed.url;
   const save = $("#edSave");
@@ -644,8 +1033,8 @@ function drawForm() {
   const s = ed.s, miss = k => ed.missing.has(k) ? " missing" : "";
   const note = (ed.request || ed.intro || ed.warnings.length) ? `<div class="ai-note">
       ${ed.request ? `<div class="q">“${esc(ed.request)}”</div>` : ""}
-      ${ed.intro ? `<div class="a"><img src="/static/mark.png" alt=""><span>${esc(ed.intro)}</span></div>` : ""}
-      ${ed.warnings.length ? `<div class="warnbox"><b>⚠ ตรวจจุดนี้ก่อน</b><ul>${ed.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}
+      ${ed.intro ? `<div class="a">${esc(ed.intro)}</div>` : ""}
+      ${ed.warnings.length ? `<div class="warnbox"><b>ตรวจจุดนี้ก่อน</b><ul>${ed.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>` : ""}
     </div>` : "";
   $("#edForm").innerHTML = `${note}
     <div class="grp">ลูกค้า</div>
@@ -653,14 +1042,14 @@ function drawForm() {
     <div class="field"><label>ที่อยู่</label><input class="in" data-k="customer_address" value="${esc(s.customer_address)}" placeholder="ไม่บังคับ"></div>
     <div class="grp">รายการสินค้า / บริการ</div>
     ${s.items.map((it, i) => `<div class="item">
-      <span class="n">รายการที่ ${i + 1}</span>
+      <div class="head"><span>รายการที่ ${i + 1}</span>${s.items.length > 1 ? `<button class="del" data-del="${i}">ลบ</button>` : ""}</div>
       <input class="in${miss(`items.${i}.description`) || miss("items")}" data-i="${i}" data-f="description" value="${esc(it.description)}" placeholder="ชื่อสินค้า / บริการ">
       <div class="row3">
         <div><span class="sm-l">จำนวน</span><input class="in r${miss(`items.${i}.quantity`)}" data-i="${i}" data-f="quantity" value="${esc(it.quantity)}" inputmode="decimal" placeholder="0"></div>
         <div><span class="sm-l">หน่วย</span><input class="in" data-i="${i}" data-f="unit" value="${esc(it.unit)}"></div>
         <div><span class="sm-l">ราคา/หน่วย</span><input class="in r${miss(`items.${i}.unit_price`)}" data-i="${i}" data-f="unit_price" value="${esc(it.unit_price)}" inputmode="decimal" placeholder="0.00"></div>
       </div>
-      <div class="foot">${s.items.length > 1 ? `<button class="del" data-del="${i}">ลบรายการ</button>` : "<span></span>"}<span>จำนวนเงิน <b data-amt="${i}"></b></span></div>
+      <div class="amt">จำนวนเงิน <b data-amt="${i}"></b></div>
     </div>`).join("")}
     <button class="add" data-add>+ เพิ่มรายการ</button>
     <div class="grp">อื่นๆ</div>
@@ -746,8 +1135,7 @@ function validate() {
 
 $("#edSave").onclick = async () => {
   if (!validate()) {
-    drawForm(); $("#ed").dataset.tab = "form";
-    document.querySelectorAll(".ed-tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === "form"));
+    drawForm(); setTab("ed", "form");
     $("#edForm .missing")?.focus(); toast("กรอกช่องที่ไฮไลต์ให้ครบก่อน"); return;
   }
   const btn = $("#edSave"); btn.disabled = true; btn.textContent = "กำลังบันทึก...";
@@ -765,16 +1153,10 @@ $("#edBack").onclick = () => {
   if (ed?.dirty && ed.docNo && !confirm("มีการแก้ไขที่ยังไม่บันทึก ออกจากหน้านี้เลยไหม?")) return;
   show("home");
 };
-document.querySelectorAll(".ed-tabs button").forEach(b => b.onclick = () => {
-  $("#ed").dataset.tab = b.dataset.tab;
-  document.querySelectorAll(".ed-tabs button").forEach(x => x.classList.toggle("on", x === b));
-  if (b.dataset.tab === "preview") fitPaper();
-});
 
 // ---------- ผู้ช่วย AI (แชท) ----------
 const thread = $("#thread"), chatInput = $("#chatInput"), chatSend = $("#chatSend");
 let chatHistory = [], currentConv = null, isAdmin = false;
-const when = ts => new Date(ts * 1000).toLocaleString("th-TH", {day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"});
 
 function md(src) {
   const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
@@ -793,7 +1175,7 @@ function md(src) {
 }
 const scrollChat = () => { const s = $("#chatScroll"); s.scrollTop = s.scrollHeight; };
 function resetThread() {
-  thread.innerHTML = `<div class="chat-empty"><img src="/static/mark.png" alt=""><h3>ผู้ช่วย AI</h3>ถามคำถาม ร่างอีเมล สรุปข้อความ หรือสั่งออกเอกสารได้เลย</div>`;
+  thread.innerHTML = `<div class="chat-empty"><h3>มีอะไรให้ช่วยไหมครับ</h3>ถามคำถาม ร่างอีเมล สรุปข้อความ หรือสั่งออกเอกสารและหาที่พักได้เลย</div>`;
 }
 function addUser(text) {
   thread.querySelector(".chat-empty")?.remove();
@@ -815,17 +1197,17 @@ async function sendChat(text) {
   chatInput.value = ""; autoGrow(chatInput, 180);
   addUser(text); chatHistory.push({role: "user", content: text});
   const body = addAI();
-  let reply = "", isDoc = false, intro = "";
+  let reply = "", isTask = false, intro = "";
   try {
     await streamChat(chatHistory, ev => {
       if (ev.type === "conversation") currentConv = ev.id;
-      else if (ev.type === "task") isDoc = true;
+      else if (ev.type === "task") isTask = true;
       else if (ev.type === "status") body.innerHTML = `<div class="status">${TYPING} ${esc(ev.text)}</div>`;
-      else if (ev.type === "token" && isDoc) intro += ev.text;
+      else if (ev.type === "token" && isTask) intro += ev.text;
       else if (ev.type === "token") { reply += ev.text; body.innerHTML = md(reply); }
       else if (ev.type === "form") {
-        body.innerHTML = `<p>เปิดหน้าใบเสนอราคาให้แล้วครับ ตรวจข้อมูลกับพรีวิวแล้วกดสร้างเอกสาร</p>`;
-        openEditor({...ev, intro});
+        body.innerHTML = `<p>${ev.task === "lodging" ? "เปิดหน้าหาที่พักให้แล้วครับ" : "เปิดหน้าใบเสนอราคาให้แล้วครับ ตรวจข้อมูลกับพรีวิวแล้วกดสร้างเอกสาร"}</p>`;
+        openForm(ev, intro);
       }
       else if (ev.type === "error") body.innerHTML += `<p class="err">${esc(ev.text)}</p>`;
       scrollChat();
@@ -851,12 +1233,11 @@ async function loadMyConvs() {
     : `<div class="hist-empty">ยังไม่มีประวัติ</div>`);
   $("#chatHist").querySelectorAll("[data-c]").forEach(b => b.onclick = () => openConv(+b.dataset.c));
 }
-function renderMessages(container, messages, withTime = false) {
+function renderMessages(container, messages) {
   for (const m of messages) {
     const el = document.createElement("div");
-    const ts = withTime ? `<div class="ts">${when(m.created)}</div>` : "";
-    if (m.role === "user") { el.className = "msg user"; el.innerHTML = `<div style="max-width:80%;display:flex;flex-direction:column;align-items:flex-end"><div class="bubble" style="max-width:100%">${esc(m.content)}</div>${ts}</div>`; }
-    else { el.className = "msg ai"; el.innerHTML = `<img class="avatar" src="/static/mark.png" alt=""><div class="body">${md(m.content)}${ts}</div>`; }
+    if (m.role === "user") { el.className = "msg user"; el.innerHTML = `<div class="bubble">${esc(m.content)}</div>`; }
+    else { el.className = "msg ai"; el.innerHTML = `<img class="avatar" src="/static/mark.png" alt=""><div class="body">${md(m.content)}</div>`; }
     container.appendChild(el);
   }
 }
@@ -874,44 +1255,51 @@ async function openConv(id) {
   } catch (e) { toast("เปิดบทสนทนาไม่ได้: " + e.message); }
 }
 
-// ---------- ประวัติการใช้งานของทุกคน (admin) ----------
-let admTimer = null, admUsersLoaded = false, admOpen = null;
-async function loadAdmin() {
-  if (!admUsersLoaded) {
+// ---------- รายงานเอกสาร (admin): ใครออกเอกสารอะไรไปบ้าง ----------
+let rpReady = false;
+async function loadReport() {
+  if (!rpReady) {
+    const now = new Date(), opts = [`<option value="">ทุกเดือน</option>`];
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      opts.push(`<option value="${v}"${i === 0 ? " selected" : ""}>${d.toLocaleDateString("th-TH", {month: "long", year: "numeric"})}</option>`);
+    }
+    $("#rpMonth").innerHTML = opts.join("");
     try {
       const users = await (await fetch("/api/admin/users")).json();
-      $("#admUser").innerHTML = `<option value="">ทุกคน</option>` + users.map(u => `<option>${esc(u)}</option>`).join("");
-      admUsersLoaded = true;
+      $("#rpUser").innerHTML = `<option value="">ทุกคน</option>` + users.map(u => `<option>${esc(u)}</option>`).join("");
     } catch {}
+    rpReady = true;
   }
-  const params = new URLSearchParams({user: $("#admUser").value, q: $("#admQ").value});
-  let list = [];
-  try { list = await (await fetch(`/api/admin/conversations?${params}`)).json(); } catch {}
-  $("#admCount").textContent = `${list.length} บทสนทนา`;
-  $("#admRows").innerHTML = list.length ? list.map(c => `<button class="adm-row${c.id === admOpen ? " on" : ""}" data-c="${c.id}">
-      <div class="top"><span class="mini-av">${esc(c.username.slice(0, 1))}</span><span class="who">${esc(c.username)}</span>${when(c.updated)}<span class="n">${c.questions} ข้อความ</span></div>
-      <div class="t">${esc(c.title)}</div></button>`).join("") : `<div class="adm-empty" style="padding:40px 10px">ไม่พบบทสนทนา</div>`;
-  $("#admRows").querySelectorAll("[data-c]").forEach(b => b.onclick = () => openAdminConv(+b.dataset.c));
+  const params = new URLSearchParams({month: $("#rpMonth").value, user: $("#rpUser").value});
+  let rp = {summary: [], documents: []};
+  try { rp = await (await fetch(`/api/admin/report?${params}`)).json(); } catch {}
+
+  const all = rp.summary.reduce((a, p) => ({count: a.count + p.count, total: a.total + p.total}), {count: 0, total: 0});
+  const cur = $("#rpUser").value;
+  const person = (u, label, count, total, avatar) => `<button class="person${cur === u ? " on" : ""}" data-u="${esc(u)}">
+      <span class="av sm">${avatar}</span><span class="tx"><b>${esc(label)}</b><small>${count} ฉบับ</small></span><span class="amt">${fmt(total)}</span></button>`;
+  $("#rpPeople").innerHTML = person("", "ทุกคน", all.count, all.total, "∑") +
+    rp.summary.map(p => person(p.user, p.user, p.count, p.total, p.user.startsWith("(") ? "–" : esc(p.user.slice(0, 1)))).join("");
+  $("#rpPeople").querySelectorAll("[data-u]").forEach(b => b.onclick = () => {
+    if (b.dataset.u.startsWith("(")) return;  // เอกสารเก่าก่อนมีระบบ login กรองไม่ได้
+    $("#rpUser").value = b.dataset.u; loadReport();
+  });
+
+  $("#rpEmpty").hidden = rp.documents.length > 0;
+  $("#rpRows").innerHTML = rp.documents.map(d => `<tr data-no="${esc(d.doc_no)}">
+      <td class="no mono">${esc(d.doc_no)}</td>
+      <td class="hide-m">${esc(d.customer)}</td>
+      <td class="num">${fmt(d.total)}</td>
+      <td>${d.created_by ? `<span class="who"><span class="av sm">${esc(d.created_by.slice(0, 1))}</span>${esc(d.created_by)}</span>` : '<span class="muted">–</span>'}</td>
+      <td class="muted hide-m">${thDate(d.created)}</td>
+      <td class="edited hide-m">${d.updated_by ? `${esc(d.updated_by)} · ${thDate(d.updated_at.slice(0, 10))} ${esc(d.updated_at.slice(11))}` : "–"}</td>
+    </tr>`).join("");
+  $("#rpRows").querySelectorAll("tr").forEach(tr => tr.onclick = () => openDoc(tr.dataset.no));
 }
-async function openAdminConv(id) {
-  try {
-    const conv = await (await fetch(`/api/conversations/${id}`)).json();
-    admOpen = id;
-    $("#admRows").querySelectorAll("[data-c]").forEach(b => b.classList.toggle("on", +b.dataset.c === id));
-    const first = conv.messages[0]?.created;
-    $("#admView").innerHTML = `<div class="adm-head">
-        <button class="icon-btn adm-back" aria-label="กลับ"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-        <span class="mini-av">${esc(conv.username.slice(0, 1))}</span><b>${esc(conv.username)}</b>
-        <span class="meta">เริ่ม ${first ? when(first) : ""} · ${conv.messages.filter(m => m.role === "user").length} ข้อความ</span>
-      </div><div class="thread"></div>`;
-    renderMessages($("#admView .thread"), conv.messages, true);
-    $("#admView .adm-back").onclick = () => $("#adm").classList.remove("open");
-    $("#adm").classList.add("open");
-    $("#admView").scrollTop = 0;
-  } catch { toast("เปิดบทสนทนาไม่ได้"); }
-}
-$("#admUser").onchange = loadAdmin;
-$("#admQ").addEventListener("input", () => { clearTimeout(admTimer); admTimer = setTimeout(loadAdmin, 300); });
+$("#rpMonth").onchange = loadReport;
+$("#rpUser").onchange = loadReport;
 
 // ---------- แถบข้าง / ผู้ใช้ / สถานะ ----------
 const closeSide = () => { $("#side").classList.remove("open"); $("#scrim").classList.remove("open"); };
@@ -936,6 +1324,7 @@ async function checkHealth() {
   try {
     const m = await (await fetch("/api/me")).json();
     $("#userName").textContent = m.user; $("#userAv").textContent = m.user.slice(0, 1);
+    $("#userRole").textContent = m.is_admin ? "ผู้ดูแลระบบ" : "ผู้ใช้งาน";
     isAdmin = m.is_admin; $("#navAdmin").hidden = !isAdmin;
     $("#hello").textContent = `${greet}, ${m.user}`;
   } catch { $("#hello").textContent = greet; }
